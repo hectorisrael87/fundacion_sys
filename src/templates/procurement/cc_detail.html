@@ -59,7 +59,12 @@
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ it.producto.nombre }}</td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ it.unidad }}</td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">{{ it.cantidad|floatformat:2 }}</td>
-        </tr>
+          <td style="text-align:right;">
+            <a href="{% url 'cc_edit_item' cc.pk it.id %}">✏️</a>
+            &nbsp;
+            <a href="{% url 'cc_delete_item' cc.pk it.id %}">🗑️</a>
+          </td>
+        </tr>  
       {% empty %}
         <tr><td colspan="3" style="padding:8px;">Sin productos.</td></tr>
       {% endfor %}
@@ -87,6 +92,11 @@
         <tr>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ ps.proveedor.nombre_empresa }}</td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ ps.detalle|default:"-" }}</td>
+          <td style="text-align:right;">
+           <a href="{% url 'cc_edit_supplier' cc.pk ps.id %}">✏️</a>
+          &nbsp;
+          <a href="{% url 'cc_delete_supplier' cc.pk ps.id %}">🗑️</a>
+          </td>
         </tr>
       {% empty %}
         <tr><td colspan="2" style="padding:8px;">Sin proveedores.</td></tr>

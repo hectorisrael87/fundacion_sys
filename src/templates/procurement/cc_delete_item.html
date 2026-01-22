@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Eliminar producto – {{ cc.number }}</h2>
+
+  <p>¿Seguro que deseas eliminar este producto del cuadro?</p>
+  <ul>
+    <li><b>Producto:</b> {{ item.producto.nombre }}</li>
+    <li><b>Cantidad:</b> {{ item.cantidad|floatformat:2 }} {{ item.unidad }}</li>
+  </ul>
+
+  <div class="muted" style="margin-top:10px;">
+    Esto también eliminará los precios de este producto en la matriz del cuadro.
+  </div>
+
+  <form method="post" style="margin-top:14px;">
+    {% csrf_token %}
+    <button class="btn" type="submit">🗑️ Sí, eliminar</button>
+    <a class="btn" href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

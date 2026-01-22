@@ -152,73 +152,111 @@ def cc_add_supplier(request, pk):
 from django.views.decorators.http import require_POST
 from .models import ComparativeItem, ComparativeSupplier  # ya existen en models.py
 
+
+from django.db import transaction
+
 @login_required
 def cc_edit_item(request, pk, item_id):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
-    item = get_object_or_404(ComparativeItem, pk=item_id, cuadro=cc)
 
-    # permisos: creador o admin (ajusta si quieres que revisor edite)
-    if not (request.user.is_superuser or cc.creado_por_id == request.user.id):
-        return HttpResponseForbidden("No tienes permiso para editar productos de este cuadro.")
+    # seguridad: creador ve/edita lo suyo; revisor/admin ve todo
+    if not (request.user.is_superuser or is_reviewer(request.user) or cc.creado_por_id == request.user.id):
+        return HttpResponseForbidden("No tienes permiso.")
+
+    # bloquear edición si está APROBADO (salvo superuser)
+    if cc.estado == "APROBADO" and not request.user.is_superuser:
+        return HttpResponseForbidden("El cuadro está aprobado y no se puede editar.")
+
+    item = get_object_or_404(cc.items.select_related("producto"), pk=item_id)
 
     if request.method == "POST":
         form = ComparativeItemForm(request.POST, instance=item)
         if form.is_valid():
             form.save()
             messages.success(request, "Producto actualizado.")
-            return redirect("cc_detail", pk=pk)
+            return redirect("cc_detail", pk=cc.pk)
     else:
         form = ComparativeItemForm(instance=item)
 
-    return render(request, "procurement/cc_item_edit.html", {"cc": cc, "form": form, "item": item})
+    return render(request, "procurement/cc_edit_item.html", {"cc": cc, "item": item, "form": form})
 
 
 @login_required
-@require_POST
 def cc_delete_item(request, pk, item_id):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
-    item = get_object_or_404(ComparativeItem, pk=item_id, cuadro=cc)
 
-    if not (request.user.is_superuser or cc.creado_por_id == request.user.id):
-        return HttpResponseForbidden("No tienes permiso para eliminar productos de este cuadro.")
+    if not (request.user.is_superuser or is_reviewer(request.user) or cc.creado_por_id == request.user.id):
+        return HttpResponseForbidden("No tienes permiso.")
 
-    item.delete()
-    messages.success(request, "Producto eliminado.")
-    return redirect("cc_detail", pk=pk)
+    if cc.estado == "APROBADO" and not request.user.is_superuser:
+        return HttpResponseForbidden("El cuadro está aprobado y no se puede editar.")
+
+    item = get_object_or_404(cc.items.select_related("producto"), pk=item_id)
+
+    if request.method == "POST":
+        with transaction.atomic():
+            # ✅ borrar precios de ese producto para este cuadro
+            cc.precios.filter(producto_id=item.producto_id).delete()
+            item.delete()
+
+        messages.success(request, "Producto eliminado del cuadro.")
+        return redirect("cc_detail", pk=cc.pk)
+
+    return render(request, "procurement/cc_delete_item.html", {"cc": cc, "item": item})
 
 
 @login_required
 def cc_edit_supplier(request, pk, supplier_id):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
-    sup = get_object_or_404(ComparativeSupplier, pk=supplier_id, cuadro=cc)
 
-    if not (request.user.is_superuser or cc.creado_por_id == request.user.id):
-        return HttpResponseForbidden("No tienes permiso para editar proveedores de este cuadro.")
+    if not (request.user.is_superuser or is_reviewer(request.user) or cc.creado_por_id == request.user.id):
+        return HttpResponseForbidden("No tienes permiso.")
+
+    if cc.estado == "APROBADO" and not request.user.is_superuser:
+        return HttpResponseForbidden("El cuadro está aprobado y no se puede editar.")
+
+    sup = get_object_or_404(cc.proveedores.select_related("proveedor"), pk=supplier_id)
 
     if request.method == "POST":
         form = ComparativeSupplierForm(request.POST, instance=sup)
         if form.is_valid():
             form.save()
             messages.success(request, "Proveedor actualizado.")
-            return redirect("cc_detail", pk=pk)
+            return redirect("cc_detail", pk=cc.pk)
     else:
         form = ComparativeSupplierForm(instance=sup)
 
-    return render(request, "procurement/cc_supplier_edit.html", {"cc": cc, "form": form, "sup": sup})
+    return render(request, "procurement/cc_edit_supplier.html", {"cc": cc, "sup": sup, "form": form})
 
 
 @login_required
-@require_POST
 def cc_delete_supplier(request, pk, supplier_id):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
-    sup = get_object_or_404(ComparativeSupplier, pk=supplier_id, cuadro=cc)
 
-    if not (request.user.is_superuser or cc.creado_por_id == request.user.id):
-        return HttpResponseForbidden("No tienes permiso para eliminar proveedores de este cuadro.")
+    if not (request.user.is_superuser or is_reviewer(request.user) or cc.creado_por_id == request.user.id):
+        return HttpResponseForbidden("No tienes permiso.")
 
-    sup.delete()
-    messages.success(request, "Proveedor eliminado.")
-    return redirect("cc_detail", pk=pk)
+    if cc.estado == "APROBADO" and not request.user.is_superuser:
+        return HttpResponseForbidden("El cuadro está aprobado y no se puede editar.")
+
+    sup = get_object_or_404(cc.proveedores.select_related("proveedor"), pk=supplier_id)
+
+    if request.method == "POST":
+        with transaction.atomic():
+            # ✅ si estaba seleccionado, lo limpiamos
+            if cc.proveedor_seleccionado_id == sup.id:
+                cc.proveedor_seleccionado = None
+                cc.save(update_fields=["proveedor_seleccionado"])
+
+            # ✅ borrar precios de ese proveedor para este cuadro
+            cc.precios.filter(proveedor_id=sup.proveedor_id).delete()
+            sup.delete()
+
+        messages.success(request, "Proveedor eliminado del cuadro.")
+        return redirect("cc_detail", pk=cc.pk)
+
+    return render(request, "procurement/cc_delete_supplier.html", {"cc": cc, "sup": sup})
+
 
 
 @login_required
@@ -309,13 +347,14 @@ def cc_send_review(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
     if cc.estado == "APROBADO":
-        messages.error(request, "Este cuadro ya está APROBADO y no puede volver a revisión.")
+        messages.error(request, "Este cuadro ya está aprobado y no puede volver a revisión.")
         return redirect("cc_detail", pk=pk)
 
     cc.estado = "EN_REVISION"
     cc.save(update_fields=["estado"])
     messages.success(request, "Enviado a revisión.")
     return redirect("cc_detail", pk=pk)
+
 
 @login_required
 def cc_approve(request, pk):
@@ -334,6 +373,7 @@ def cc_approve(request, pk):
 
     messages.success(request, "Cuadro aprobado.")
     return redirect("cc_detail", pk=pk)
+
 
 
 @login_required
