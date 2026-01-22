@@ -1,4 +1,5 @@
 from django.urls import path
+from . import views
 
 from .views import (
     cc_list,
@@ -16,6 +17,7 @@ from .views import (
     cc_delete_item,
     cc_edit_supplier,
     cc_delete_supplier,
+    cc_print,
 )
 
 urlpatterns = [
@@ -45,4 +47,6 @@ urlpatterns = [
 
     # Órdenes de pago
     path("cuadros/<int:pk>/generar-ops/", cc_generate_ops, name="cc_generate_ops"),
+    path("cuadros/<int:pk>/imprimir/", cc_print, name="cc_print"),
+    
 ]

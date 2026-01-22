@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Cuadro {{ cc.number }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; color:#111; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 10px 20px; }
+    h1 { font-size: 18px; margin: 0; text-align:center; }
+    h2 { font-size: 13px; margin: 18px 0 8px; border-bottom:1px solid #ccc; padding-bottom:4px; }
+    .muted { color:#555; }
+    .grid { width:100%; border-collapse: collapse; }
+    .grid td { padding: 4px 6px; vertical-align: top; }
+    .table { width:100%; border-collapse: collapse; margin-top: 6px; }
+    .table th, .table td { border-bottom:1px solid #e6e6e6; padding:6px; }
+    .table th { text-align:left; }
+    .right { text-align:right; }
+    .sign-grid { width:100%; border-collapse: collapse; margin-top: 18px; }
+    .sign-grid td { width:33.33%; padding: 18px 10px 0; text-align:center; }
+    .line { border-top:1px solid #111; margin-top: 40px; }
+    @media print {
+      .no-print { display:none; }
+      body { margin:0; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="no-print" style="text-align:right; margin-bottom:8px;">
+    <button onclick="window.print()">Imprimir</button>
+  </div>
+
+  <h1>CUADRO COMPARATIVO</h1>
+  <div class="muted" style="text-align:center;">{{ cc.number }}</div>
+
+  <h2>Cabecera</h2>
+  <table class="grid">
+    <tr>
+      <td style="width:50%;">
+        <b>Item cotizado:</b> {{ cc.item_cotizado }}<br>
+        <b>Proyecto:</b> {{ cc.proyecto }}<br>
+      </td>
+      <td style="width:50%;">
+        <b>Estado:</b> {{ cc.get_estado_display }}<br>
+        <b>Fecha:</b> {{ cc.creado_en|date:"d/m/Y H:i" }}<br>
+      </td>
+    </tr>
+  </table>
+
+  <h2>Precios y Totales</h2>
+
+  {% load dict_extras %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th class="right">Cantidad</th>
+        {% for ps in proveedores %}
+          <th class="right">
+            {{ ps.proveedor.nombre_empresa }}
+            <div class="muted" style="font-size:11px; font-weight:normal;">{{ ps.detalle }}</div>
+          </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+      <tr>
+        <td>{{ it.producto.nombre }}</td>
+        <td class="right">{{ it.cantidad|floatformat:2 }} {{ it.unidad }}</td>
+
+        {% for ps in proveedores %}
+          <td class="right">
+            {% with pu=precios|get_item:ps.proveedor.id|get_item:it.producto.id %}
+              {% if pu %}
+                <div class="muted" style="font-size:11px;">PU: {{ pu|floatformat:2 }}</div>
+                <b>{{ it.cantidad|mul:pu|floatformat:2 }}</b>
+              {% else %}
+                -
+              {% endif %}
+            {% endwith %}
+          </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+
+      <tr>
+        <td style="font-weight:bold; border-top:2px solid #ccc;">Total</td>
+        <td style="border-top:2px solid #ccc;"></td>
+        {% for ps in proveedores %}
+          {% with k=ps.proveedor.id|stringformat:"s" %}
+            <td class="right" style="font-weight:bold; border-top:2px solid #ccc;">
+              {{ totales_por_proveedor|get_item:k|default:"0"|floatformat:2 }}
+            </td>
+          {% endwith %}
+        {% endfor %}
+      </tr>
+
+      <tr>
+        <td style="font-weight:bold;">Total general</td>
+        <td></td>
+        <td colspan="{{ proveedores|length }}" style="font-weight:bold;">
+          {{ total_general|floatformat:2 }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Proveedor seleccionado y motivo</h2>
+  {% if cc.proveedor_seleccionado %}
+    <b>Proveedor:</b> {{ cc.proveedor_seleccionado.proveedor.nombre_empresa }}<br>
+    <b>Motivo:</b> {{ cc.motivo_seleccion }}<br>
+  {% else %}
+    (No definido)
+  {% endif %}
+
+  <h2>Firmas</h2>
+  <table class="sign-grid">
+    <tr>
+      <td>
+        <div class="line"></div>
+        <div><b>Cotizado por</b></div>
+        <div class="muted">{{ cc.creado_por.get_full_name|default:cc.creado_por.username }}</div>
+      </td>
+      <td>
+        <div class="line"></div>
+        <div><b>Revisado por</b></div>
+        <div class="muted">
+          {% if cc.revisado_por %}
+            {{ cc.revisado_por.get_full_name|default:cc.revisado_por.username }}
+            {% if cc.revisado_en %}<div style="margin-top:4px;">{{ cc.revisado_en|date:"d/m/Y H:i" }}</div>{% endif %}
+          {% else %}
+            —
+          {% endif %}
+        </div>
+      </td>
+      <td>
+        <div class="line"></div>
+        <div><b>Aprobado por</b></div>
+        <div class="muted">—</div>
+      </td>
+    </tr>
+  </table>
+
+</div>
+</body>
+</html>

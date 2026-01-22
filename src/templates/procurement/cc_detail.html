@@ -208,13 +208,15 @@
   </p>
 
   <p style="margin:6px 0;">
-    <b>Aprobado por:</b>
-    {% if cc.estado == "APROBADO" %}
-      Revisor
+    <b>Revisado por:</b>
+    {% if cc.revisado_por %}
+      {{ cc.revisado_por.get_full_name|default:cc.revisado_por.username }}
+      {% if cc.revisado_en %} ({{ cc.revisado_en|date:"d/m/Y H:i" }}){% endif %}
     {% else %}
       —
     {% endif %}
   </p>
+
 </div>
 
 
@@ -231,6 +233,7 @@
     {% endif %}
 
     <a class="btn" href="{% url 'cc_generate_ops' cc.pk %}">🧾 Generar órdenes de pago</a>
+    <a class="btn" href="{% url 'cc_print' cc.pk %}" target="_blank">🖨️ Imprimir</a>
   </div>
 
   <div class="muted" style="margin-top:10px;">

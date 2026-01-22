@@ -307,11 +307,15 @@ def cc_select_supplier(request, pk):
 @login_required
 def cc_send_review(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
+
+    if cc.estado == "APROBADO":
+        messages.error(request, "Este cuadro ya está APROBADO y no puede volver a revisión.")
+        return redirect("cc_detail", pk=pk)
+
     cc.estado = "EN_REVISION"
-    cc.save()
+    cc.save(update_fields=["estado"])
     messages.success(request, "Enviado a revisión.")
     return redirect("cc_detail", pk=pk)
-
 
 @login_required
 def cc_approve(request, pk):
@@ -324,7 +328,10 @@ def cc_approve(request, pk):
         return HttpResponseForbidden("No puedes aprobar un cuadro que tú creaste.")
 
     cc.estado = "APROBADO"
-    cc.save()
+    cc.revisado_por = request.user
+    cc.revisado_en = timezone.now()
+    cc.save(update_fields=["estado", "revisado_por", "revisado_en"])
+
     messages.success(request, "Cuadro aprobado.")
     return redirect("cc_detail", pk=pk)
 
@@ -333,7 +340,9 @@ def cc_approve(request, pk):
 def cc_back_to_draft(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
     cc.estado = "BORRADOR"
-    cc.save()
+    cc.revisado_por = None
+    cc.revisado_en = None
+    cc.save(update_fields=["estado", "revisado_por", "revisado_en"])
     messages.success(request, "Devuelto a borrador.")
     return redirect("cc_detail", pk=pk)
 
@@ -426,3 +435,40 @@ def cc_generate_ops(request, pk):
         "procurement/cc_generate_ops.html",
         {"cc": cc, "items": items, "proveedores": proveedores},
     )
+
+@login_required
+def cc_print(request, pk: int):
+    cc = get_object_or_404(ComparativeQuote, pk=pk)
+
+    # seguridad: creador ve lo suyo; revisor/superuser ven todo
+    if not (request.user.is_superuser or is_reviewer(request.user) or cc.creado_por_id == request.user.id):
+        return HttpResponseForbidden("No tienes permiso para ver este cuadro.")
+
+    items = list(cc.items.select_related("producto").all())
+    proveedores = list(cc.proveedores.select_related("proveedor").all())
+
+    from collections import defaultdict
+    precios = defaultdict(dict)
+    for p in cc.precios.all():
+        precios[p.proveedor_id][p.producto_id] = p.precio_unit
+
+    totales_por_proveedor = {}
+    for ps in proveedores:
+        prov_id = ps.proveedor_id
+        total = Decimal("0")
+        for it in items:
+            pu = precios.get(prov_id, {}).get(it.producto_id)
+            if pu is not None:
+                total += (it.cantidad * pu)
+        totales_por_proveedor[str(prov_id)] = total
+
+    total_general = sum(totales_por_proveedor.values(), Decimal("0"))
+
+    return render(request, "procurement/cc_print.html", {
+        "cc": cc,
+        "items": items,
+        "proveedores": proveedores,
+        "precios": precios,
+        "totales_por_proveedor": totales_por_proveedor,
+        "total_general": total_general,
+    })

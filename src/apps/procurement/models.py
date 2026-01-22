@@ -27,7 +27,13 @@ class ComparativeQuote(models.Model):
 
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="cc_creados")
     creado_en = models.DateTimeField(auto_now_add=True)
-
+    revisado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.PROTECT,
+        related_name="cc_revisados",
+    )
+    revisado_en = models.DateTimeField(null=True, blank=True)
     class Status(models.TextChoices):
         BORRADOR = "BORRADOR", "Borrador"
         EN_REVISION = "EN_REVISION", "En revisión"
