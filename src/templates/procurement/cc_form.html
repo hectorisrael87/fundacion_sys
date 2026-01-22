@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Nuevo cuadro{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 700px;">
+  <h2>Nuevo cuadro comparativo</h2>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div>
+      <label>Item cotizado</label><br>
+      {{ form.item_cotizado }}
+    </div>
+    <br>
+
+    <div>
+      <label>Proyecto</label><br>
+      {{ form.proyecto }}
+    </div>
+    <br>
+
+    <div>
+      <label>Expresado en</label><br>
+      {{ form.expresado_en }}
+    </div>
+    <br>
+
+    <button type="submit">Guardar</button>
+    <a href="{% url 'cc_list' %}" style="margin-left:10px;">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

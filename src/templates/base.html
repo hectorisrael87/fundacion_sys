@@ -1,0 +1,53 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Sistema Fundación{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Sistema Fundación</div>
+    <div class="userbar">
+      {% if user.is_authenticated %}
+        <span>Usuario: <b>{{ user.username }}</b></span>
+        <form method="post" action="{% url 'logout' %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" style="background:none;border:none;color:blue;cursor:pointer;padding:0;">
+              Salir
+            </button>
+        </form>
+
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav>
+        <a href="{% url 'home' %}">Inicio</a>
+
+        <a href="{% url 'cc_list' %}">Cuadros comparativos</a>
+      
+        <a href="{% url 'op_list' %}">Órdenes de pago</a>
+
+        <a href="/admin/">Administración</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      {% if messages %}
+        <ul class="messages">
+          {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

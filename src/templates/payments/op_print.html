@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Orden de Pago {{ op.number }}</title>
+  <style>
+    /* Estilo simple para impresión */
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #111; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 10px 20px; }
+    h1 { font-size: 18px; margin: 0 0 6px; text-align: center; }
+    h2 { font-size: 13px; margin: 18px 0 8px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    .muted { color: #555; }
+    .grid { width: 100%; border-collapse: collapse; }
+    .grid td { padding: 4px 6px; vertical-align: top; }
+    .box { border: 1px solid #ccc; padding: 8px; border-radius: 6px; }
+    .table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    .table th, .table td { border-bottom: 1px solid #e6e6e6; padding: 6px 6px; }
+    .table th { text-align: left; font-weight: bold; }
+    .right { text-align: right; }
+    .center { text-align: center; }
+    .total-row td { font-weight: bold; border-top: 2px solid #ccc; border-bottom: none; padding-top: 8px; }
+    .sign { margin-top: 22px; }
+    .sign-grid { width: 100%; border-collapse: collapse; }
+    .sign-grid td { width: 33.33%; padding: 18px 10px 0; text-align: center; }
+    .line { border-top: 1px solid #111; margin-top: 40px; }
+    @media print {
+      a { display: none; }
+      .no-print { display:none; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="no-print" style="text-align:right; margin-bottom:8px;">
+    <button onclick="window.print()">Imprimir</button>
+  </div>
+
+  <h1>ORDEN DE PAGO</h1>
+  <div class="muted center">{{ op.number }}</div>
+
+  <h2>Datos de la orden</h2>
+  <table class="grid">
+    <tr>
+      <td style="width:50%;">
+        <b>Para:</b> {{ op.para|default:"-" }}<br>
+        <b>Cargo Para:</b> {{ op.cargo_para|default:"-" }}
+      </td>
+      <td style="width:50%;">
+        <b>De:</b> {{ op.de|default:"-" }}<br>
+        <b>Cargo De:</b> {{ op.cargo_de|default:"-" }}
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        <b>Fecha solicitud:</b> {{ op.fecha_solicitud }}<br>
+
+        <b>Monto Solicitado:</b> {{ monto_a_pagar|floatformat:2 }}<br>
+
+        {% if op.es_parcial %}
+          <b>Pago parcial:</b> Sí<br>
+          <b>Total calculado:</b> {{ total|floatformat:2 }}<br>
+        {% endif %}
+
+        {% if op.pago_parcial_de %}
+          <b>Complemento de:</b> {{ op.pago_parcial_de.number }}<br>
+        {% endif %}
+      </td>
+
+      <td>
+        <b>Cuadro:</b> {{ op.cuadro.number }}<br>
+        <b>Estado:</b> {{ op.estado }}<br>
+      </td>
+    </tr>
+  </table>
+
+  <h2>Descripción</h2>
+  <table class="grid">
+    <tr>
+      <td colspan="2">
+        <div class="box">{{ op.descripcion|default:"-"|linebreaksbr }}</div>
+      </td>
+    </tr>
+  </table>
+
+  <h2>Detalle</h2>
+  <table class="table">
+    <thead>
+      <tr>
+        <th style="width:55%; text-align:left;">Producto</th>
+        <th style="width:15%; text-align:right;">Cantidad</th>
+        <th style="width:15%; text-align:right;">PU</th>
+        <th style="width:15%; text-align:right;">Subtotal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+      <tr>
+        <td style="text-align:left;">{{ it.producto.nombre }}</td>
+        <td style="text-align:right;">{{ it.cantidad|floatformat:2 }} {{ it.unidad }}</td>
+        <td style="text-align:right;">{{ it.precio_unit|floatformat:2 }}</td>
+        <td style="text-align:right;">{{ it.subtotal|floatformat:2 }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" style="text-align:left;">Sin ítems.</td>
+      </tr>
+      {% endfor %}
+
+      <tr class="total-row">
+        <td colspan="2"></td>
+        <td class="right">Total calculado</td>
+        <td class="right">{{ total|floatformat:2 }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Información de Pago</h2>
+  <table class="grid">
+    <tr>
+      <td style="width:50%;">
+        <b>Proyecto:</b> {{ op.proyecto|default:"-" }}<br>
+        <b>Partida contable:</b> {{ op.partida_contable|default:"-" }}<br>
+        <b>Con factura:</b> {{ op.con_factura|default:"-" }}<br>
+        <b>Efectivo:</b> {{ op.efectivo|default:"-" }}
+      </td>
+      <td style="width:50%;">
+        <b>Total a pagar:</b> {{ monto_a_pagar|floatformat:2 }}<br>
+        <b>Son:</b> {{ monto_letras }}
+      </td>
+    </tr>
+  </table>
+
+  <h2>Proveedor</h2>
+  <table class="grid">
+    <tr>
+      <td style="width:50%;">
+        <b>Nombre:</b> {{ op.proveedor.nombre_empresa }}<br>
+        <b>Dirección:</b> {{ op.proveedor.direccion|default:"-" }}<br>
+        <b>Teléfono:</b> {{ op.proveedor.telefono|default:"-" }}
+      </td>
+      <td style="width:50%;">
+        <b>CI:</b> {{ op.proveedor.ci|default_if_none:"-" }}&nbsp;&nbsp;
+        <b>NIT:</b> {{ op.proveedor.nit|default_if_none:"-" }}<br>
+        <b>Datos transferencia:</b> {{ op.proveedor.datos_transferencia|default:"-" }}<br>
+        <b>Entidad:</b> {{ op.proveedor.entidad|default:"-" }}<br>
+        <b>Nro. Cuenta:</b> {{ op.proveedor.nro_cuenta|default:"-" }}
+      </td>
+    </tr>
+  </table>
+
+  <div class="sign">
+    <h2>Firmas</h2>
+
+    <table class="sign-grid">
+      <tr>
+        <td>
+          <div class="line"></div>
+          <div><b>Solicitado por</b></div>
+          <div class="muted">{{ op.creado_por.get_full_name|default:op.creado_por.username }}</div>
+        </td>
+
+        <td>
+          <div class="line"></div>
+          <div><b>Vo.Bo.</b></div>
+          <div class="muted">
+            {% if op.aprobado_por %}
+              {{ op.aprobado_por.get_full_name|default:op.aprobado_por.username }}
+              {% if op.aprobado_en %}
+                <div style="margin-top:4px;">{{ op.aprobado_en|date:"d/m/Y H:i" }}</div>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+        </td>
+
+        <td>
+          <div class="line"></div>
+          <div><b>Vo.Bo. Dirección</b></div>
+          <div class="muted">—</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

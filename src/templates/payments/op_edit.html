@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Orden de pago: {{ op.number }}</h2>
+<p><b>Estado:</b> {{ op.estado }} | <b>Cuadro:</b> <a href="{% url 'cc_detail' op.cuadro.id %}">{{ op.cuadro.number }}</a></p>
+
+<form method="post" style="border:1px solid #ddd; padding:16px; border-radius:8px; margin:16px 0;">
+  {% csrf_token %}
+
+  <h3>Datos de la orden</h3>
+  <table style="width:100%; border-collapse:collapse;">
+    <tr>
+      <td style="padding:6px; width:15%;"><b>Para:</b></td>
+      <td style="padding:6px; width:35%;">{{ form.para }}</td>
+      <td style="padding:6px; width:15%;"><b>Cargo Para:</b></td>
+      <td style="padding:6px; width:35%;">{{ form.cargo_para }}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px;"><b>De:</b></td>
+      <td style="padding:6px;">{{ form.de }}</td>
+      <td style="padding:6px;"><b>Cargo De:</b></td>
+      <td style="padding:6px;">{{ form.cargo_de }}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px;"><b>Fecha solicitud:</b></td>
+      <td style="padding:6px;">{{ form.fecha_solicitud }}</td>
+      <td style="padding:6px;"><b>Monto Solicitado:</b></td>
+      <td style="padding:6px;">{{ form.monto_manual }}</td>
+    </tr>
+  </table>
+
+  <h3>Información de Pago</h3>
+  <table style="width:100%; border-collapse:collapse;">
+    <tr>
+      <td style="padding:6px; width:15%;"><b>Proyecto:</b></td>
+      <td style="padding:6px; width:35%;">{{ form.proyecto }}</td>
+      <td style="padding:6px; width:15%;"><b>Partida contable:</b></td>
+      <td style="padding:6px; width:35%;">{{ form.partida_contable }}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px;"><b>Con factura:</b></td>
+      <td style="padding:6px;">{{ form.con_factura }}</td>
+      <td style="padding:6px;"><b>Efectivo:</b></td>
+      <td style="padding:6px;">{{ form.efectivo }}</td>
+    </tr>
+  </table>
+
+  <h3>Descripción</h3>
+  <div style="margin-bottom:12px;">
+    {{ form.descripcion }}
+  </div>
+
+  <h3>Total</h3>
+  <p style="margin:6px 0;"><b>Total calculado:</b> {{ total|floatformat:2 }}</p>
+  {% if op.monto_manual %}
+    <p style="margin:6px 0;"><b>Monto solicitado (manual):</b> {{ op.monto_manual|floatformat:2 }}</p>
+  {% endif %}
+  <p style="margin:6px 0;"><b>Total a pagar:</b> {{ monto_a_pagar|floatformat:2 }}</p>
+  <p style="margin:6px 0;"><b>Son:</b> {{ monto_letras }}</p>
+
+  <div style="margin-top:14px; display:flex; gap:12px; flex-wrap:wrap;">
+    <button type="submit">💾 Guardar</button>
+
+    {% if op.estado == "BORRADOR" %}
+      <a href="{% url 'op_send_review' op.pk %}">📤 Enviar a revisión</a>
+    {% endif %}
+
+    {% if is_reviewer and op.estado == "EN_REVISION" %}
+      <a href="{% url 'op_approve' op.pk %}">✅ Aprobar</a>
+      <a href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
+    {% endif %}
+
+    <a href="{% url 'op_print' op.pk %}" target="_blank">🖨️ Imprimir</a>
+    <a href="{% url 'op_list' %}">← Volver</a>
+  </div>
+</form>
+
+<hr>
+
+<h3>Proveedor</h3>
+<p><b>Nombre:</b> {{ op.proveedor.nombre_empresa }}</p>
+<p><b>Dirección:</b> {{ op.proveedor.direccion|default:"-" }}</p>
+<p><b>Teléfono:</b> {{ op.proveedor.telefono|default:"-" }}</p>
+<p><b>CI:</b> {{ op.proveedor.ci|default:"-" }} &nbsp; <b>NIT:</b> {{ op.proveedor.nit|default:"-" }}</p>
+<p><b>Datos transferencia:</b> {{ op.proveedor.datos_transferencia|default:"-" }}</p>
+<p><b>Entidad:</b> {{ op.proveedor.entidad|default:"-" }}</p>
+<p><b>Nro. Cuenta:</b> {{ op.proveedor.nro_cuenta|default:"-" }}</p>
+
+<hr>
+
+<h3>Detalle</h3>
+<table style="width:100%; border-collapse: collapse;">
+  <thead>
+    <tr>
+      <th style="text-align:left; border-bottom:1px solid #ccc;">Producto</th>
+      <th style="text-align:right; border-bottom:1px solid #ccc;">Cantidad</th>
+      <th style="text-align:right; border-bottom:1px solid #ccc;">PU</th>
+      <th style="text-align:right; border-bottom:1px solid #ccc;">Subtotal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for it in items %}
+    <tr>
+      <td style="padding:6px 0;">{{ it.producto.nombre }}</td>
+      <td style="text-align:right;">{{ it.cantidad|floatformat:2 }} {{ it.unidad }}</td>
+      <td style="text-align:right;">{{ it.precio_unit|floatformat:2 }}</td>
+      <td style="text-align:right;">{{ it.subtotal|floatformat:2 }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">Sin items.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<hr>
+
+<h3>Firmas</h3>
+<p><b>Solicitado por:</b> {{ op.creado_por.get_full_name|default:op.creado_por.username }}</p>
+<p><b>Vo.Bo.:</b>
+  {% if op.aprobado_por %}
+    {{ op.aprobado_por.get_full_name|default:op.aprobado_por.username }}
+    {% if op.aprobado_en %} ({{ op.aprobado_en|date:"d/m/Y H:i" }}){% endif %}
+  {% else %}
+    —
+  {% endif %}
+</p>
+<p><b>Vo.Bo. Dirección:</b> —</p>
+
+{% endblock %}

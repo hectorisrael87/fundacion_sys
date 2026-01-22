@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Agregar proveedor{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:600px;">
+  <h3>{{ cc.number }} – Agregar proveedor</h3>
+
+  <p>
+  <a href="{% url 'provider_create' %}?next={% url 'cc_add_supplier' cc.pk %}">
+    + Crear proveedor nuevo
+  </a>
+</p>
+
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Agregar</button>
+    <a href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

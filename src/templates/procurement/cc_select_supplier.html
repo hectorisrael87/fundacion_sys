@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Seleccionar proveedor{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:800px;">
+  <h2>{{ cc.number }} – Seleccionar proveedor</h2>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Guardar</button>
+    <a href="{% url 'cc_detail' cc.pk %}" style="margin-left:10px;">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

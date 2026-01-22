@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Cuadros comparativos{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Cuadros comparativos</h2>
+    <a href="{% url 'cc_create' %}">+ Nuevo cuadro</a>
+  </div>
+
+  <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
+    <thead>
+      <tr>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Número</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Item cotizado</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Proyecto</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Estado</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Fecha</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Creado por</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cuadros %}
+        <tr>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+            <a href="{% url 'cc_detail' c.pk %}">{{ c.number }}</a>
+          </td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.item_cotizado }}</td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.proyecto }}</td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.get_estado_display }}</td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.creado_en|date:"d/m/Y H:i" }}</td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.creado_por.get_full_name|default:c.creado_por.username }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" style="padding:8px;">No hay cuadros todavía.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

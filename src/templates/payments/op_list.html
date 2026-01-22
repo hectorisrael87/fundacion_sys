@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Órdenes de pago</h2>
+
+<table style="width:100%; border-collapse: collapse;">
+  <thead>
+    <tr>
+      <th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Número</th>
+      <th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Proveedor</th>
+      <th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Cuadro</th>
+      <th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Estado</th>
+      <th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Creado por</th>
+
+    </tr>
+  </thead>
+  <tbody>
+    {% for op in ops %}
+      <tr>
+        <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+          <a href="{% url 'op_detail' op.pk %}">{{ op.number }}</a>
+        </td>
+        <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ op.proveedor.nombre_empresa }}</td>
+        <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ op.cuadro.number }}</td>
+        <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ op.estado }}</td>
+        <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ op.creado_por.get_full_name|default:op.creado_por.username }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" style="padding:8px;">No hay órdenes.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

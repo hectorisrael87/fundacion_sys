@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% load dict_extras %}
+{% block title %}{{ cc.number }}{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0;">Cuadro comparativo: {{ cc.number }}</h2>
+      <div class="muted" style="margin-top:6px;">
+        Estado: <b>{{ cc.get_estado_display }}</b>
+        &nbsp;|&nbsp; Fecha: {{ cc.creado_en|date:"d/m/Y H:i" }}
+      </div>
+
+      <div style="margin-top:8px;">
+        <div><b>Item cotizado:</b> {{ cc.item_cotizado }}</div>
+        <div><b>Proyecto:</b> {{ cc.proyecto }}</div>
+        <div><b>Expresado en:</b> {{ cc.expresado_en }}</div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <b>Órdenes creadas:</b>
+        {% if ordenes %}
+          {% for op in ordenes %}
+            <a href="{% url 'op_detail' op.id %}">{{ op.number }}</a>{% if not forloop.last %}, {% endif %}
+          {% endfor %}
+        {% else %}
+          Ninguna
+        {% endif %}
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn" href="{% url 'cc_list' %}">← Volver</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- 2) PRODUCTOS -->
+<div class="card" style="margin-top:14px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+    <h3 style="margin:0;">Productos</h3>
+    <a class="btn" href="{% url 'cc_add_item' cc.pk %}">➕ Agregar / Editar productos</a>
+  </div>
+
+  <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
+    <thead>
+      <tr>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Producto</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Unidad</th>
+        <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">Cantidad</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+        <tr>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ it.producto.nombre }}</td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ it.unidad }}</td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">{{ it.cantidad|floatformat:2 }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3" style="padding:8px;">Sin productos.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+<!-- 3) PROVEEDORES -->
+<div class="card" style="margin-top:14px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+    <h3 style="margin:0;">Proveedores</h3>
+    <a class="btn" href="{% url 'cc_add_supplier' cc.pk %}">➕ Agregar / Editar proveedores</a>
+  </div>
+
+  <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
+    <thead>
+      <tr>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Proveedor</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Detalle / Motivo</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ps in proveedores %}
+        <tr>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ ps.proveedor.nombre_empresa }}</td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ ps.detalle|default:"-" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="2" style="padding:8px;">Sin proveedores.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+<!-- 4) PRECIOS Y TOTALES -->
+<div class="card" style="margin-top:14px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+    <h3 style="margin:0;">Precios y Totales</h3>
+    <a class="btn" href="{% url 'cc_prices' cc.pk %}">💲 Cargar / Editar matriz</a>
+  </div>
+
+  <div class="muted" style="margin-top:8px;">
+    Nota: aquí se muestra el PU por proveedor. Los totales por proveedor se calculan con los precios cargados.
+  </div>
+
+  <div style="overflow:auto; margin-top:12px;">
+    <table style="width:100%; min-width:900px; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Producto</th>
+          <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">Cantidad</th>
+
+          {% for ps in proveedores %}
+            <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">
+              {{ ps.proveedor.nombre_empresa }}
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for it in items %}
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+              {{ it.producto.nombre }}
+            </td>
+
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">
+              {{ it.cantidad|floatformat:2 }} {{ it.unidad }}
+            </td>
+
+            {% for ps in proveedores %}
+              {% with prov_prices=precios|get_item:ps.proveedor_id %}
+                {% with pu=prov_prices|get_item:it.producto_id %}
+                  <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">
+                    {% if pu %}
+                      <div style="font-size:12px; color:#666;">PU: {{ pu|floatformat:2 }}</div>
+                      <div style="font-weight:bold; font-size:12px; color:#111;">
+                        ({{ it.cantidad|floatformat:2 }} × {{ pu|floatformat:2 }})
+                      </div>
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                {% endwith %}
+              {% endwith %}
+            {% endfor %}
+          </tr>
+        {% empty %}
+          <tr><td colspan="{{ proveedores|length|add:'2' }}" style="padding:8px;">Sin datos.</td></tr>
+        {% endfor %}
+
+        <!-- Totales por proveedor -->
+        <tr>
+          <td colspan="2" style="padding:10px 8px; text-align:right; font-weight:bold; border-top:2px solid #e5e7eb;">
+            Total por proveedor
+          </td>
+
+          {% for ps in proveedores %}
+            <td style="padding:10px 8px; text-align:right; font-weight:bold; border-top:2px solid #e5e7eb;">
+              {% with key=ps.proveedor_id|stringformat:"s" %}
+                {{ totales_por_proveedor|get_item:key|floatformat:2 }}
+              {% endwith %}
+            </td>
+          {% endfor %}
+        </tr>
+
+        <!-- Total general -->
+        <tr>
+          <td colspan="{{ proveedores|length|add:'2' }}" style="padding:10px 8px; text-align:right; font-weight:bold;">
+            Total general: {{ total_general|floatformat:2 }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- 5) PROVEEDOR SELECCIONADO - MOTIVO -->
+<div class="card" style="margin-top:14px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+    <h3 style="margin:0;">Proveedor seleccionado - Motivo</h3>
+    <a class="btn" href="{% url 'cc_select_supplier' cc.pk %}">✅ Seleccionar proveedor</a>
+  </div>
+
+  <div style="margin-top:10px;">
+    {% if cc.proveedor_seleccionado %}
+      <p style="margin:6px 0;"><b>Proveedor:</b> {{ cc.proveedor_seleccionado.proveedor.nombre_empresa }}</p>
+      <p style="margin:6px 0;"><b>Motivo:</b> {{ cc.motivo_seleccion|default:"-" }}</p>
+    {% else %}
+      <p style="margin:6px 0;">No se ha seleccionado proveedor.</p>
+    {% endif %}
+  </div>
+</div>
+
+
+<!-- 6) REGISTRO -->
+<div class="card" style="margin-top:14px;">
+  <h3 style="margin-top:0;">Registro</h3>
+
+  <p style="margin:6px 0;">
+    <b>Creado por:</b> {{ cc.creado_por.get_full_name|default:cc.creado_por.username }}
+  </p>
+
+  <p style="margin:6px 0;">
+    <b>Aprobado por:</b>
+    {% if cc.estado == "APROBADO" %}
+      Revisor
+    {% else %}
+      —
+    {% endif %}
+  </p>
+</div>
+
+
+<!-- 7) SELECCIÓN Y FLUJO -->
+<div class="card" style="margin-top:14px;">
+  <h3 style="margin-top:0;">Selección y flujo</h3>
+
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+    <a class="btn" href="{% url 'cc_send_review' cc.pk %}">📤 Enviar a revisión</a>
+
+    {% if is_reviewer %}
+      <a class="btn" href="{% url 'cc_approve' cc.pk %}">✅ Aprobar</a>
+      <a class="btn" href="{% url 'cc_back_to_draft' cc.pk %}">↩️ Devolver a borrador</a>
+    {% endif %}
+
+    <a class="btn" href="{% url 'cc_generate_ops' cc.pk %}">🧾 Generar órdenes de pago</a>
+  </div>
+
+  <div class="muted" style="margin-top:10px;">
+    * Regla: se crea 1 OP por proveedor asignado (para optimizar compras/ahorros).
+  </div>
+</div>
+
+{% endblock %}
