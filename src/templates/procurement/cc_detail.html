@@ -4,22 +4,24 @@
 
 {% block content %}
 
+<!-- 1) CABECERA -->
 <div class="card">
   <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
     <div>
       <h2 style="margin:0;">Cuadro comparativo: {{ cc.number }}</h2>
+
       <div class="muted" style="margin-top:6px;">
         Estado: <b>{{ cc.get_estado_display }}</b>
         &nbsp;|&nbsp; Fecha: {{ cc.creado_en|date:"d/m/Y H:i" }}
       </div>
 
-      <div style="margin-top:8px;">
+      <div style="margin-top:10px;">
         <div><b>Item cotizado:</b> {{ cc.item_cotizado }}</div>
         <div><b>Proyecto:</b> {{ cc.proyecto }}</div>
         <div><b>Expresado en:</b> {{ cc.expresado_en }}</div>
       </div>
 
-      <div style="margin-top:10px;">
+      <div style="margin-top:12px;">
         <b>Órdenes creadas:</b>
         {% if ordenes %}
           {% for op in ordenes %}
@@ -51,6 +53,7 @@
         <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Producto</th>
         <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Unidad</th>
         <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">Cantidad</th>
+        <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">Acción</th>
       </tr>
     </thead>
     <tbody>
@@ -59,14 +62,14 @@
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ it.producto.nombre }}</td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ it.unidad }}</td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">{{ it.cantidad|floatformat:2 }}</td>
-          <td style="text-align:right;">
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">
             <a href="{% url 'cc_edit_item' cc.pk it.id %}">✏️</a>
             &nbsp;
             <a href="{% url 'cc_delete_item' cc.pk it.id %}">🗑️</a>
           </td>
-        </tr>  
+        </tr>
       {% empty %}
-        <tr><td colspan="3" style="padding:8px;">Sin productos.</td></tr>
+        <tr><td colspan="4" style="padding:8px;">Sin productos.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -85,21 +88,26 @@
       <tr>
         <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Proveedor</th>
         <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Detalle / Motivo</th>
+        <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">Acción</th>
       </tr>
     </thead>
     <tbody>
       {% for ps in proveedores %}
         <tr>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ ps.proveedor.nombre_empresa }}</td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ ps.detalle|default:"-" }}</td>
-          <td style="text-align:right;">
-           <a href="{% url 'cc_edit_supplier' cc.pk ps.id %}">✏️</a>
-          &nbsp;
-          <a href="{% url 'cc_delete_supplier' cc.pk ps.id %}">🗑️</a>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+            {{ ps.proveedor.nombre_empresa }}
+          </td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+            {{ ps.detalle|default:"-" }}
+          </td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">
+            <a href="{% url 'cc_edit_supplier' cc.pk ps.id %}">✏️</a>
+            &nbsp;
+            <a href="{% url 'cc_delete_supplier' cc.pk ps.id %}">🗑️</a>
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="2" style="padding:8px;">Sin proveedores.</td></tr>
+        <tr><td colspan="3" style="padding:8px;">Sin proveedores.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -123,7 +131,6 @@
         <tr>
           <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Producto</th>
           <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">Cantidad</th>
-
           {% for ps in proveedores %}
             <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">
               {{ ps.proveedor.nombre_empresa }}
@@ -148,8 +155,8 @@
                 {% with pu=prov_prices|get_item:it.producto_id %}
                   <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">
                     {% if pu %}
-                      <div style="font-size:12px; color:#666;">PU: {{ pu|floatformat:2 }}</div>
-                      <div style="font-weight:bold; font-size:12px; color:#111;">
+                      <div class="muted" style="font-size:12px;">PU: {{ pu|floatformat:2 }}</div>
+                      <div style="font-weight:600; font-size:12px;">
                         ({{ it.cantidad|floatformat:2 }} × {{ pu|floatformat:2 }})
                       </div>
                     {% else %}
@@ -169,7 +176,6 @@
           <td colspan="2" style="padding:10px 8px; text-align:right; font-weight:bold; border-top:2px solid #e5e7eb;">
             Total por proveedor
           </td>
-
           {% for ps in proveedores %}
             <td style="padding:10px 8px; text-align:right; font-weight:bold; border-top:2px solid #e5e7eb;">
               {% with key=ps.proveedor_id|stringformat:"s" %}
@@ -226,7 +232,6 @@
       —
     {% endif %}
   </p>
-
 </div>
 
 
@@ -235,7 +240,11 @@
   <h3 style="margin-top:0;">Selección y flujo</h3>
 
   <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-    <a class="btn" href="{% url 'cc_send_review' cc.pk %}">📤 Enviar a revisión</a>
+    {% if cc.estado != "APROBADO" %}
+      <a class="btn" href="{% url 'cc_send_review' cc.pk %}">📤 Enviar a revisión</a>
+    {% else %}
+      <span class="muted">✅ Este cuadro ya está aprobado (no se puede reenviar a revisión).</span>
+    {% endif %}
 
     {% if is_reviewer %}
       <a class="btn" href="{% url 'cc_approve' cc.pk %}">✅ Aprobar</a>
@@ -243,7 +252,11 @@
     {% endif %}
 
     <a class="btn" href="{% url 'cc_generate_ops' cc.pk %}">🧾 Generar órdenes de pago</a>
-    <a class="btn" href="{% url 'cc_print' cc.pk %}" target="_blank">🖨️ Imprimir</a>
+
+    {% url 'cc_print' cc.pk as cc_print_url %}
+    {% if cc_print_url %}
+      <a class="btn" href="{{ cc_print_url }}" target="_blank">🖨️ Imprimir</a>
+    {% endif %}
   </div>
 
   <div class="muted" style="margin-top:10px;">

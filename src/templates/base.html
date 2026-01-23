@@ -8,46 +8,71 @@
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">Sistema Fundación</div>
-    <div class="userbar">
-      {% if user.is_authenticated %}
-        <span>Usuario: <b>{{ user.username }}</b></span>
-        <form method="post" action="{% url 'logout' %}" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit" style="background:none;border:none;color:blue;cursor:pointer;padding:0;">
-              Salir
-            </button>
-        </form>
 
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand">
+        <span class="brand-badge">OP</span>
+        <div class="brand-text">
+          <div class="brand-title">Sistema OP</div>
+          <div class="brand-subtitle">Órdenes de Pago</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="topbar-center">
+      <div class="searchbox">
+        <span class="searchicon">🔎</span>
+        <input type="text" placeholder="Buscar..." />
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      {% if user.is_authenticated %}
+        <div class="userchip">
+          <span class="userdot"></span>
+          <span class="username">{{ user.get_full_name|default:user.username }}</span>
+        </div>
+
+        <form method="post" action="{% url 'logout' %}" style="display:inline;">
+          {% csrf_token %}
+          <button class="linkbtn" type="submit">Salir</button>
+        </form>
       {% endif %}
     </div>
   </header>
 
   <div class="layout">
     <aside class="sidebar">
-      <nav>
-        <a href="{% url 'home' %}">Inicio</a>
-
-        <a href="{% url 'cc_list' %}">Cuadros comparativos</a>
-      
-        <a href="{% url 'op_list' %}">Órdenes de pago</a>
-
-        <a href="/admin/">Administración</a>
+      <nav class="nav">
+        <a class="nav-link" href="{% url 'home' %}">🏠 Dashboard</a>
+        <a class="nav-link" href="{% url 'cc_list' %}">📄 Cuadros comparativos</a>
+        <a class="nav-link" href="{% url 'op_list' %}">💳 Órdenes de pago</a>
+        <a class="nav-link" href="/admin/">⚙️ Administración</a>
       </nav>
+
+      {% if user.is_authenticated %}
+      <div class="sidebar-footer">
+        <div class="small muted">{{ user.get_full_name|default:user.username }}</div>
+        <div class="small muted">Sesión activa</div>
+      </div>
+      {% endif %}
     </aside>
 
     <main class="content">
-      {% if messages %}
-        <ul class="messages">
-          {% for message in messages %}
-            <li class="{{ message.tags }}">{{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
+      <div class="container">
+        {% if messages %}
+          <ul class="messages">
+            {% for message in messages %}
+              <li class="msg {{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
 
-      {% block content %}{% endblock %}
+        {% block content %}{% endblock %}
+      </div>
     </main>
   </div>
+
 </body>
 </html>
