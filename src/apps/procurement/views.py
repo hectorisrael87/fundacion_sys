@@ -94,6 +94,9 @@ def cc_detail(request, pk: int):
 
     total_general = sum(totales_por_proveedor.values(), Decimal("0"))
 
+    # 🔒 Bloqueo visual/funcional cuando está APROBADO (excepto superuser)
+    cc_bloqueado = (cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser)
+
     return render(
         request,
         "procurement/cc_detail.html",
@@ -107,8 +110,10 @@ def cc_detail(request, pk: int):
             "ordenes": cc.ordenes_pago.all(),
             "is_reviewer": (request.user.is_superuser or is_reviewer(request.user)),
             "is_approver": (request.user.is_superuser or is_approver(request.user)),
+            "cc_bloqueado": cc_bloqueado,
         },
     )
+
 
 @login_required
 def cc_delete(request, pk: int):
@@ -143,6 +148,11 @@ def cc_delete(request, pk: int):
 def cc_add_item(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
+    # 🔒 Si está aprobado: no se puede editar (excepto superuser)
+    if cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser:
+        messages.error(request, "El cuadro está APROBADO y no se puede editar.")
+        return redirect("cc_detail", pk=pk)
+
     if request.method == "POST":
         form = ComparativeItemForm(request.POST)
         if form.is_valid():
@@ -165,10 +175,14 @@ def cc_add_item(request, pk):
 
     return render(request, "procurement/cc_add_item.html", {"form": form, "cc": cc})
 
-
 @login_required
 def cc_add_supplier(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
+
+    # 🔒 Si está aprobado: no se puede editar (excepto superuser)
+    if cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser:
+        messages.error(request, "El cuadro está APROBADO y no se puede editar.")
+        return redirect("cc_detail", pk=pk)
 
     if request.method == "POST":
         form = ComparativeSupplierForm(request.POST)
@@ -287,6 +301,9 @@ def cc_delete_supplier(request, pk, supplier_id):
 def cc_prices(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
+    # 🔒 Si está aprobado: se permite VER, pero no GUARDAR (excepto superuser)
+    cc_bloqueado = (cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser)
+
     items = list(cc.items.select_related("producto").all())
     proveedores = list(cc.proveedores.select_related("proveedor").all())
 
@@ -296,6 +313,10 @@ def cc_prices(request, pk):
     }
 
     if request.method == "POST":
+        if cc_bloqueado:
+            messages.error(request, "El cuadro está APROBADO: la matriz está bloqueada (no se puede guardar).")
+            return redirect("cc_prices", pk=pk)
+
         with transaction.atomic():
             for ps in proveedores:
                 for it in items:
@@ -344,13 +365,17 @@ def cc_prices(request, pk):
     return render(
         request,
         "procurement/cc_prices.html",
-        {"cc": cc, "items": items, "proveedores": proveedores, "matriz": matriz},
+        {"cc": cc, "items": items, "proveedores": proveedores, "matriz": matriz, "cc_bloqueado": cc_bloqueado},
     )
 
 
 @login_required
 def cc_select_supplier(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
+
+    if cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser:
+        messages.error(request, "El cuadro está APROBADO: no se puede cambiar el proveedor seleccionado.")
+        return redirect("cc_detail", pk=pk)
 
     if request.method == "POST":
         form = ComparativeSelectionForm(request.POST, instance=cc)
