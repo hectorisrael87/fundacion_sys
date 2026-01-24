@@ -6,7 +6,7 @@
     <div>
       <h2 style="margin:0;">Orden de pago: {{ op.number }}</h2>
       <div class="muted" style="margin-top:4px;">
-        Estado: <b>{{ op.estado }}</b> |
+        Estado: <b>{{ op.get_estado_display }}</b> |
         Cuadro: <a href="{% url 'cc_detail' op.cuadro.id %}">{{ op.cuadro.number }}</a>
 
         {% if op.es_parcial %}
@@ -26,13 +26,31 @@
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <a class="btn" href="{% url 'op_print' op.pk %}" target="_blank">🖨️ Imprimir</a>
 
-      {% if op.estado == "BORRADOR" %}
-        <a class="btn" href="{% url 'op_send_review' op.pk %}">📤 Enviar a revisión</a>
-      {% endif %}
+      {# =========================
+         FLUJO: BORRADOR -> EN_REVISION -> REVISADO -> APROBADO
+         ========================= #}
 
-      {% if is_reviewer and op.estado == "EN_REVISION" %}
-        <a class="btn" href="{% url 'op_approve' op.pk %}">✅ Aprobar</a>
-        <a class="btn" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver</a>
+      {% if op.estado == "BORRADOR" %}
+        {% if puede_editar %}
+          <a class="btn" href="{% url 'op_send_review' op.pk %}">📤 Enviar a revisión</a>
+        {% else %}
+          <span class="muted">Solo el creador puede enviar a revisión.</span>
+        {% endif %}
+      {% elif op.estado == "EN_REVISION" %}
+        {% if is_reviewer %}
+          <a class="btn" href="{% url 'op_mark_reviewed' op.pk %}">✅ Marcar como revisado</a>
+          <a class="btn" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
+        {% else %}
+          <span class="muted">⏳ Pendiente de revisión.</span>
+        {% endif %}
+      {% elif op.estado == "REVISADO" %}
+        {% if is_approver %}
+          <a class="btn" href="{% url 'op_approve' op.pk %}">✅ Aprobar</a>
+        {% else %}
+          <span class="muted">⏳ Pendiente de aprobación.</span>
+        {% endif %}
+      {% elif op.estado == "APROBADO" %}
+        <span class="muted">✅ Esta OP ya está aprobada.</span>
       {% endif %}
 
       {% if puede_crear_complemento %}
@@ -52,7 +70,7 @@
 
     {% if not puede_editar %}
       <div class="muted" style="margin-bottom:10px;">
-        Esta orden está <b>APROBADA</b>. Solo un administrador puede editar.
+        Esta orden no está en <b>BORRADOR</b>. Solo se puede editar en BORRADOR (o un administrador, según reglas del sistema).
       </div>
     {% endif %}
 
@@ -190,8 +208,24 @@
 
 <div class="card" style="margin-top:14px;">
   <h3 style="margin-top:0;">Registro</h3>
-  <p><b>Creado por:</b> {{ op.creado_por.get_full_name|default:op.creado_por.username }}</p>
-  <p><b>Aprobado por:</b>
+
+  <p style="margin:6px 0;">
+    <b>Creado por:</b> {{ op.creado_por.get_full_name|default:op.creado_por.username }}
+    {% if op.creado_en %} ({{ op.creado_en|date:"d/m/Y H:i" }}){% endif %}
+  </p>
+
+  <p style="margin:6px 0;">
+    <b>Revisado por:</b>
+    {% if op.revisado_por %}
+      {{ op.revisado_por.get_full_name|default:op.revisado_por.username }}
+      {% if op.revisado_en %} ({{ op.revisado_en|date:"d/m/Y H:i" }}){% endif %}
+    {% else %}
+      —
+    {% endif %}
+  </p>
+
+  <p style="margin:6px 0;">
+    <b>Aprobado por:</b>
     {% if op.aprobado_por %}
       {{ op.aprobado_por.get_full_name|default:op.aprobado_por.username }}
       {% if op.aprobado_en %} ({{ op.aprobado_en|date:"d/m/Y H:i" }}){% endif %}
