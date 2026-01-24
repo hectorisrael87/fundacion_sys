@@ -64,6 +64,15 @@ def cc_create(request):
 def cc_detail(request, pk: int):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
+    # Permiso de lectura (evita acceso por URL directa)
+    if not (
+        request.user.is_superuser
+        or is_reviewer(request.user)
+        or is_approver(request.user)
+        or cc.creado_por_id == request.user.id
+    ):
+        return HttpResponseForbidden("No tienes permiso para ver este cuadro.")
+
     items = list(cc.items.select_related("producto").all())
     proveedores = list(cc.proveedores.select_related("proveedor").all())
 
@@ -335,11 +344,18 @@ def cc_select_supplier(request, pk):
 def cc_send_review(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
+    # Solo el creador (o superuser) puede enviar a revisión
+    if not (request.user.is_superuser or cc.creado_por_id == request.user.id):
+        return HttpResponseForbidden("No tienes permiso para enviar este cuadro a revisión.")
+
     if cc.estado == ComparativeQuote.Status.APROBADO:
         messages.error(request, "Este cuadro ya está aprobado y no puede volver a revisión.")
         return redirect("cc_detail", pk=pk)
 
-    # solo se envía a revisión desde BORRADOR o si el aprobador lo devolvió
+    if cc.estado != ComparativeQuote.Status.BORRADOR:
+        messages.error(request, "Solo se puede enviar a revisión un cuadro en estado BORRADOR.")
+        return redirect("cc_detail", pk=pk)
+
     cc.estado = ComparativeQuote.Status.EN_REVISION
     cc.revisado_por = None
     cc.revisado_en = None
@@ -522,7 +538,13 @@ def cc_generate_ops(request, pk):
 def cc_print(request, pk: int):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
-    if not (request.user.is_superuser or is_reviewer(request.user) or cc.creado_por_id == request.user.id):
+    # Permiso de impresión: creador, reviewer, approver o superuser
+    if not (
+        request.user.is_superuser
+        or is_reviewer(request.user)
+        or is_approver(request.user)
+        or cc.creado_por_id == request.user.id
+    ):
         return HttpResponseForbidden("No tienes permiso para ver este cuadro.")
 
     items = list(cc.items.select_related("producto").all())

@@ -28,9 +28,9 @@
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.item_cotizado }}</td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.proyecto }}</td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{% if is_reviewer and c.estado == "EN_REVISION" %}
-              Pendiente (Revisión)
+              Pendiente
             {% elif is_approver and c.estado == "REVISADO" %}
-              Pendiente (Aprobación)
+              Pendiente
             {% else %}
               {{ c.get_estado_display }}
             {% endif %}

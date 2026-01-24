@@ -122,6 +122,7 @@
         <div class="line"></div>
         <div><b>Cotizado por</b></div>
         <div class="muted">{{ cc.creado_por.get_full_name|default:cc.creado_por.username }}</div>
+        {% if cc.creado_en %}<div class="muted" style="margin-top:4px;">{{ cc.creado_en|date:"d/m/Y H:i" }}</div>{% endif %}
       </td>
       <td>
         <div class="line"></div>
@@ -138,7 +139,14 @@
       <td>
         <div class="line"></div>
         <div><b>Aprobado por</b></div>
-        <div class="muted">—</div>
+        <div class="muted">
+          {% if cc.aprobado_por %}
+            {{ cc.aprobado_por.get_full_name|default:cc.aprobado_por.username }}
+            {% if cc.aprobado_en %}<div style="margin-top:4px;">{{ cc.aprobado_en|date:"d/m/Y H:i" }}</div>{% endif %}
+          {% else %}
+            —
+          {% endif %}
+        </div>
       </td>
     </tr>
   </table>

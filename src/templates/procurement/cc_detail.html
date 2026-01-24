@@ -221,6 +221,7 @@
 
   <p style="margin:6px 0;">
     <b>Creado por:</b> {{ cc.creado_por.get_full_name|default:cc.creado_por.username }}
+    {% if cc.creado_en %} ({{ cc.creado_en|date:"d/m/Y H:i" }}){% endif %}
   </p>
 
   <p style="margin:6px 0;">
@@ -232,7 +233,18 @@
       —
     {% endif %}
   </p>
+
+  <p style="margin:6px 0;">
+    <b>Aprobado por:</b>
+    {% if cc.aprobado_por %}
+      {{ cc.aprobado_por.get_full_name|default:cc.aprobado_por.username }}
+      {% if cc.aprobado_en %} ({{ cc.aprobado_en|date:"d/m/Y H:i" }}){% endif %}
+    {% else %}
+      —
+    {% endif %}
+  </p>
 </div>
+
 <!-- 7) SELECCIÓN Y FLUJO -->
 <div class="card" style="margin-top:14px;">
   <h3 style="margin-top:0;">Selección y flujo</h3>
