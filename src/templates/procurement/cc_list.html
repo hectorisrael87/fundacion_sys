@@ -27,7 +27,14 @@
           </td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.item_cotizado }}</td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.proyecto }}</td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.get_estado_display }}</td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{% if is_reviewer and c.estado == "EN_REVISION" %}
+              Pendiente (Revisión)
+            {% elif is_approver and c.estado == "REVISADO" %}
+              Pendiente (Aprobación)
+            {% else %}
+              {{ c.get_estado_display }}
+            {% endif %}
+          </td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.creado_en|date:"d/m/Y H:i" }}</td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.creado_por.get_full_name|default:c.creado_por.username }}</td>
         </tr>

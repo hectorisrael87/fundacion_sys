@@ -20,6 +20,13 @@ def next_document_number(doc_type: str) -> str:
 
 
 class ComparativeQuote(models.Model):
+    class Status(models.TextChoices):
+        BORRADOR = "BORRADOR", "Borrador"
+        EN_REVISION = "EN_REVISION", "En revisión"   # (en UI lo mostraremos como Pendiente)
+        REVISADO = "REVISADO", "Revisado"
+        APROBADO = "APROBADO", "Aprobado"
+        RECHAZADO = "RECHAZADO", "Rechazado"
+
     number = models.CharField(max_length=20, unique=True, blank=True)
     item_cotizado = models.CharField(max_length=200)
     proyecto = models.CharField(max_length=200)
@@ -27,6 +34,8 @@ class ComparativeQuote(models.Model):
 
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="cc_creados")
     creado_en = models.DateTimeField(auto_now_add=True)
+
+    # Revisión (rol revisor)
     revisado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True, blank=True,
@@ -34,10 +43,15 @@ class ComparativeQuote(models.Model):
         related_name="cc_revisados",
     )
     revisado_en = models.DateTimeField(null=True, blank=True)
-    class Status(models.TextChoices):
-        BORRADOR = "BORRADOR", "Borrador"
-        EN_REVISION = "EN_REVISION", "En revisión"
-        APROBADO = "APROBADO", "Aprobado"
+
+    # Aprobación final (rol aprobador)
+    aprobado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.PROTECT,
+        related_name="cc_aprobados",
+    )
+    aprobado_en = models.DateTimeField(null=True, blank=True)
 
     estado = models.CharField(max_length=20, choices=Status.choices, default=Status.BORRADOR)
 
@@ -50,7 +64,6 @@ class ComparativeQuote(models.Model):
     )
 
     motivo_seleccion = models.TextField(blank=True)
-
 
     def save(self, *args, **kwargs):
         if not self.number:

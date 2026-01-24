@@ -41,3 +41,12 @@ def product_create(request):
         form = ProductForm()
 
     return render(request, "catalog/product_form.html", {"form": form, "next_url": next_url})
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from apps.catalog.models import Provider
+
+@login_required
+def provider_list(request):
+    proveedores = Provider.objects.order_by("nombre_empresa")
+    return render(request, "catalog/provider_list.html", {"proveedores": proveedores})

@@ -234,34 +234,48 @@
   </p>
 </div>
 
-
 <!-- 7) SELECCIÓN Y FLUJO -->
 <div class="card" style="margin-top:14px;">
   <h3 style="margin-top:0;">Selección y flujo</h3>
 
   <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-    {% if cc.estado != "APROBADO" %}
+
+    {# BORRADOR → enviar a revisión #}
+    {% if cc.estado == "BORRADOR" %}
       <a class="btn" href="{% url 'cc_send_review' cc.pk %}">📤 Enviar a revisión</a>
-    {% else %}
-      <span class="muted">✅ Este cuadro ya está aprobado (no se puede reenviar a revisión).</span>
     {% endif %}
 
+    {# EN_REVISION (Pendiente) → Revisor marca revisado #}
+    {% if cc.estado == "EN_REVISION" and is_reviewer %}
+      <a class="btn" href="{% url 'cc_mark_reviewed' cc.pk %}">✅ Marcar como revisado</a>
+    {% endif %}
+
+    {# REVISADO → Aprobador decide #}
+    {% if cc.estado == "REVISADO" and is_approver %}
+      <a class="btn" href="{% url 'cc_approve_final' cc.pk %}">✅ Aprobar</a>
+      <a class="btn" href="{% url 'cc_reject' cc.pk %}">⛔ Rechazar</a>
+      <a class="btn" href="{% url 'cc_return_to_review' cc.pk %}">↩️ Devolver a revisión</a>
+    {% endif %}
+
+    {# RECHAZADO → Aprobador puede devolver a revisión #}
+    {% if cc.estado == "RECHAZADO" and is_approver %}
+      <a class="btn" href="{% url 'cc_return_to_review' cc.pk %}">↩️ Devolver a revisión</a>
+    {% endif %}
+
+    {# Admin/Revisor → devolver a borrador #}
     {% if is_reviewer %}
-      <a class="btn" href="{% url 'cc_approve' cc.pk %}">✅ Aprobar</a>
-      <a class="btn" href="{% url 'cc_back_to_draft' cc.pk %}">↩️ Devolver a borrador</a>
+      <a class="btn" href="{% url 'cc_back_to_draft' cc.pk %}">📝 Devolver a borrador</a>
     {% endif %}
 
     <a class="btn" href="{% url 'cc_generate_ops' cc.pk %}">🧾 Generar órdenes de pago</a>
+    <a class="btn" href="{% url 'cc_print' cc.pk %}" target="_blank">🖨️ Imprimir</a>
 
-    {% url 'cc_print' cc.pk as cc_print_url %}
-    {% if cc_print_url %}
-      <a class="btn" href="{{ cc_print_url }}" target="_blank">🖨️ Imprimir</a>
-    {% endif %}
   </div>
 
   <div class="muted" style="margin-top:10px;">
     * Regla: se crea 1 OP por proveedor asignado (para optimizar compras/ahorros).
   </div>
 </div>
+
 
 {% endblock %}

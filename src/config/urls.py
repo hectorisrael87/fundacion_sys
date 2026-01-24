@@ -28,4 +28,6 @@ urlpatterns = [
     path("", include("apps.catalog.urls")),
     path("", include("apps.procurement.urls")),
     path("", include("apps.payments.urls")),
+    path("", include("apps.catalog.urls")),
+
 ]
