@@ -17,9 +17,13 @@ from .models import PaymentOrder, PaymentOrderItem
 
 @login_required
 def op_list(request):
-    qs = PaymentOrder.objects.select_related(
-        "creado_por", "revisado_por", "aprobado_por", "proveedor", "cuadro"
-    ).order_by("-creado_en")
+    qs = (
+        PaymentOrder.objects.select_related(
+            "creado_por", "revisado_por", "aprobado_por", "proveedor", "cuadro"
+        )
+        .prefetch_related("items__producto")
+        .order_by("-creado_en")
+    )
 
     # Visibilidad:
     # - Revisor/Aprobador/Superuser: ven todo
@@ -40,6 +44,7 @@ def op_list(request):
             "is_approver": (request.user.is_superuser or is_approver(request.user)),
         },
     )
+
 
 
 @login_required
@@ -298,6 +303,26 @@ def op_print(request, pk: int):
         },
     )
 
+@login_required
+def op_delete(request, pk: int):
+    op = get_object_or_404(PaymentOrder, pk=pk)
+
+    # Solo creador o superuser
+    if not (request.user.is_superuser or op.creado_por_id == request.user.id):
+        return HttpResponseForbidden("No tienes permiso para eliminar esta Orden de Pago.")
+
+    # Solo se elimina en BORRADOR (salvo superuser)
+    if op.estado != PaymentOrder.Status.BORRADOR and not request.user.is_superuser:
+        return HttpResponseForbidden("Solo se puede eliminar una OP en BORRADOR.")
+
+    if request.method == "POST":
+        num = op.number
+        op.delete()
+        messages.success(request, f"Orden eliminada: {num}")
+        return redirect("op_list")
+
+    # Si alguien entra por GET, lo devolvemos al detalle
+    return redirect("op_detail", pk=pk)
 
 # =========================
 # PAGO COMPLEMENTARIO (ANTICIPO)

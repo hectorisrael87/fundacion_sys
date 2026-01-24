@@ -20,5 +20,6 @@ urlpatterns = [
         views.op_create_complement,
         name="op_create_complement",
     ),
-    
+    # eliminar
+    path("ordenes/<int:pk>/eliminar/", views.op_delete, name="op_delete"),
 ]

@@ -2,9 +2,10 @@
 {% block content %}
 
 <div class="card">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
     <div>
       <h2 style="margin:0;">Orden de pago: {{ op.number }}</h2>
+
       <div class="muted" style="margin-top:4px;">
         Estado: <b>{{ op.get_estado_display }}</b> |
         Cuadro: <a href="{% url 'cc_detail' op.cuadro.id %}">{{ op.cuadro.number }}</a>
@@ -21,38 +22,36 @@
           | Complemento: <a href="{% url 'op_detail' complemento.pk %}">{{ complemento.number }}</a>
         {% endif %}
       </div>
+
+      {# Mensaje de estado arriba (solo texto) #}
+      <div style="margin-top:6px;">
+        {% if op.estado == "BORRADOR" %}
+          <span class="muted">📝 En borrador.</span>
+        {% elif op.estado == "EN_REVISION" %}
+          {% if is_reviewer %}
+            <span class="muted">🛠️ En revisión: puedes corregir y luego marcar como revisado.</span>
+          {% else %}
+            <span class="muted">⏳ Pendiente de revisión.</span>
+          {% endif %}
+        {% elif op.estado == "REVISADO" %}
+          {% if is_approver %}
+            <span class="muted">⏳ Pendiente de aprobación.</span>
+          {% else %}
+            <span class="muted">✅ Revisado (pendiente de aprobación).</span>
+          {% endif %}
+        {% elif op.estado == "APROBADO" %}
+          <span class="muted">✅ Esta OP ya está aprobada.</span>
+        {% endif %}
+      </div>
     </div>
 
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    {# SOLO Imprimir y Complemento arriba (no movemos esto) #}
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
       <a class="btn" href="{% url 'op_print' op.pk %}" target="_blank">🖨️ Imprimir</a>
-      {% if op.estado == "BORRADOR" %}
-        {% if puede_editar %}
-          <a class="btn" href="{% url 'op_send_review' op.pk %}">📤 Enviar a revisión</a>
-        {% else %}
-          <span class="muted">Solo el creador puede enviar a revisión.</span>
-        {% endif %}
-      {% elif op.estado == "EN_REVISION" %}
-        {% if is_reviewer %}
-          <a class="btn" href="{% url 'op_mark_reviewed' op.pk %}">✅ Marcar como revisado</a>
-          <a class="btn" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
-        {% else %}
-          <span class="muted">⏳ Pendiente de revisión.</span>
-        {% endif %}
-      {% elif op.estado == "REVISADO" %}
-        {% if is_approver %}
-          <a class="btn" href="{% url 'op_approve' op.pk %}">✅ Aprobar</a>
-        {% else %}
-          <span class="muted">⏳ Pendiente de aprobación.</span>
-        {% endif %}
-      {% elif op.estado == "APROBADO" %}
-        <span class="muted">✅ Esta OP ya está aprobada.</span>
-      {% endif %}
 
       {% if puede_crear_complemento %}
         <a class="btn" href="{% url 'op_create_complement' op.pk %}">➕ Crear pago complementario</a>
       {% endif %}
-
-      <a class="btn" href="{% url 'op_list' %}">← Volver</a>
     </div>
   </div>
 </div>
@@ -64,11 +63,10 @@
     <h3 style="margin-top:0;">Datos de la orden</h3>
 
     {% if not puede_editar %}
-      <div class="muted" style="margin-bottom:10px;">
+      <!-- <div class="muted" style="margin-bottom:10px;">
         No editable en este estado
-      </div>
+      </div># -->
     {% endif %}
-
 
     <table style="width:100%; border-collapse:collapse;">
       <tr>
@@ -229,6 +227,29 @@
       —
     {% endif %}
   </p>
+</div>
+
+{# Botones abajo (después de Registro) #}
+<div class="card" style="margin-top:14px;">
+  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+
+    {% if op.estado == "BORRADOR" %}
+      {% if op.creado_por_id == user.id or user.is_superuser %}
+        <a class="btn" href="{% url 'op_send_review' op.pk %}">📤 Enviar a revisión</a>
+      {% endif %}
+    {% elif op.estado == "EN_REVISION" %}
+      {% if is_reviewer %}
+        <a class="btn" href="{% url 'op_mark_reviewed' op.pk %}">✅ Marcar como revisado</a>
+        <a class="btn" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
+      {% endif %}
+    {% elif op.estado == "REVISADO" %}
+      {% if is_approver %}
+        <a class="btn" href="{% url 'op_approve' op.pk %}">✅ Aprobar</a>
+      {% endif %}
+    {% endif %}
+
+    <a class="btn" href="{% url 'op_list' %}">← Volver</a>
+  </div>
 </div>
 
 {% endblock %}

@@ -9,10 +9,13 @@
     <thead>
       <tr>
         <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Número</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Proveedor</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Descripción</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Para</th>
         <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Cuadro</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Estado</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Creador</th>
         <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Fecha</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Estado</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -21,7 +24,17 @@
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
             <a href="{% url 'op_detail' op.pk %}">{{ op.number }}</a>
           </td>
-
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+            {% if op.items.all %}
+              {% for it in op.items.all %}
+                {% if forloop.first %}
+                  {{ it.producto.nombre }}
+                {% endif %}
+              {% endfor %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
             {{ op.proveedor.nombre_empresa|default:op.proveedor }}
           </td>
@@ -31,15 +44,20 @@
           </td>
 
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+            {{ op.creado_por.get_full_name|default:op.creado_por.username }}
+          </td>
+
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+            {{ op.creado_en|date:"d/m/Y" }}
+          </td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
             {% if is_reviewer %}
-              {# Revisor: solo es "Pendiente" cuando está EN_REVISION (le toca revisar) #}
               {% if op.estado == "EN_REVISION" %}
                 Pendiente
               {% else %}
                 {{ op.get_estado_display }}
               {% endif %}
             {% elif is_approver %}
-              {# Aprobador: solo es "Pendiente" cuando está REVISADO (le toca aprobar) #}
               {% if op.estado == "REVISADO" %}
                 Pendiente
               {% else %}
@@ -49,13 +67,22 @@
               {{ op.get_estado_display }}
             {% endif %}
           </td>
-
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            {{ op.creado_en|date:"d/m/Y H:i" }}
+            <a href="{% url 'op_detail' op.pk %}" title="Ver">👁️</a>
+
+            {% if user.is_superuser or op.creado_por_id == user.id %}
+              {% if user.is_superuser or op.estado == "BORRADOR" %}
+                <form method="post" action="{% url 'op_delete' op.pk %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" title="Eliminar" style="border:none; background:none; cursor:pointer; padding:0 0 0 8px;"
+                          onclick="return confirm('¿Eliminar la OP {{ op.number }}?');">🗑️</button>
+                </form>
+              {% endif %}
+            {% endif %}
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="5" style="padding:8px;">No hay órdenes de pago.</td></tr>
+        <tr><td colspan="8" style="padding:8px;">No hay órdenes de pago.</td></tr>
       {% endfor %}
     </tbody>
   </table>
