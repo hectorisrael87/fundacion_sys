@@ -12,7 +12,6 @@ def is_reviewer(user) -> bool:
     return in_group(user, "revisor")
 
 def is_approver(user) -> bool:
-    if not user.is_authenticated:
-        return False
-    return user.groups.filter(name__iexact="aprobador").exists()
+    return in_group(user, "aprobador")
+
 
