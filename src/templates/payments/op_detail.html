@@ -25,11 +25,6 @@
 
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <a class="btn" href="{% url 'op_print' op.pk %}" target="_blank">🖨️ Imprimir</a>
-
-      {# =========================
-         FLUJO: BORRADOR -> EN_REVISION -> REVISADO -> APROBADO
-         ========================= #}
-
       {% if op.estado == "BORRADOR" %}
         {% if puede_editar %}
           <a class="btn" href="{% url 'op_send_review' op.pk %}">📤 Enviar a revisión</a>
@@ -70,9 +65,10 @@
 
     {% if not puede_editar %}
       <div class="muted" style="margin-bottom:10px;">
-        Esta orden no está en <b>BORRADOR</b>. Solo se puede editar en BORRADOR (o un administrador, según reglas del sistema).
+        No editable en este estado
       </div>
     {% endif %}
+
 
     <table style="width:100%; border-collapse:collapse;">
       <tr>

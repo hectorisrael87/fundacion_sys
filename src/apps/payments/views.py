@@ -56,11 +56,23 @@ def op_detail(request, pk: int):
     ):
         return HttpResponseForbidden("No tienes permiso para ver esta Orden de Pago.")
 
-    # Edición: SOLO creador (o superuser) y SOLO en BORRADOR
+        # Edición:
+    # - Creador (o superuser): SOLO en BORRADOR
+    # - Revisor (o superuser): SOLO en EN_REVISION (para correcciones)
+    # - Aprobador: NO edita (solo aprueba cuando está REVISADO)
     puede_editar = (
-        (request.user.is_superuser or op.creado_por_id == request.user.id)
-        and op.estado == PaymentOrder.Status.BORRADOR
+        request.user.is_superuser
+        or (
+            op.estado == PaymentOrder.Status.BORRADOR
+            and op.creado_por_id == request.user.id
+        )
+        or (
+            op.estado == PaymentOrder.Status.EN_REVISION
+            and is_reviewer(request.user)
+            and op.creado_por_id != request.user.id
+        )
     )
+
 
     if request.method == "POST":
         if not puede_editar:

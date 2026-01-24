@@ -31,8 +31,16 @@
           </td>
 
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            {% if is_reviewer or is_approver %}
-              {% if op.estado != "APROBADO" %}
+            {% if is_reviewer %}
+              {# Revisor: solo es "Pendiente" cuando está EN_REVISION (le toca revisar) #}
+              {% if op.estado == "EN_REVISION" %}
+                Pendiente
+              {% else %}
+                {{ op.get_estado_display }}
+              {% endif %}
+            {% elif is_approver %}
+              {# Aprobador: solo es "Pendiente" cuando está REVISADO (le toca aprobar) #}
+              {% if op.estado == "REVISADO" %}
                 Pendiente
               {% else %}
                 {{ op.get_estado_display }}

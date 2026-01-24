@@ -278,10 +278,17 @@
       <a class="btn" href="{{ cc_print_url }}" target="_blank">🖨️ Imprimir</a>
     {% endif %}
   </div>
+  <div style="margin-top:12px;">
+        <b>Órdenes creadas:</b>
+        {% if ordenes %}
+          {% for op in ordenes %}
+            <a href="{% url 'op_detail' op.id %}">{{ op.number }}</a>{% if not forloop.last %}, {% endif %}
+          {% endfor %}
+        {% else %}
+          Ninguna
+        {% endif %}
+      </div>
 
-  <div class="muted" style="margin-top:10px;">
-    * Flujo: BORRADOR → EN_REVISION → REVISADO → APROBADO
-  </div>
 </div>
 
 </div>

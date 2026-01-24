@@ -153,18 +153,37 @@
 
   <div class="sign">
     <h2>Firmas</h2>
-
     <table class="sign-grid">
       <tr>
         <td>
           <div class="line"></div>
           <div><b>Solicitado por</b></div>
-          <div class="muted">{{ op.creado_por.get_full_name|default:op.creado_por.username }}</div>
+          <div class="muted">
+            {{ op.creado_por.get_full_name|default:op.creado_por.username }}
+            {% if op.creado_en %}
+              <div style="margin-top:4px;">{{ op.creado_en|date:"d/m/Y H:i" }}</div>
+            {% endif %}
+          </div>
         </td>
 
         <td>
           <div class="line"></div>
           <div><b>Vo.Bo.</b></div>
+          <div class="muted">
+            {% if op.revisado_por %}
+              {{ op.revisado_por.get_full_name|default:op.revisado_por.username }}
+              {% if op.revisado_en %}
+                <div style="margin-top:4px;">{{ op.revisado_en|date:"d/m/Y H:i" }}</div>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+        </td>
+
+        <td>
+          <div class="line"></div>
+          <div><b>Vo.Bo. Dirección</b></div>
           <div class="muted">
             {% if op.aprobado_por %}
               {{ op.aprobado_por.get_full_name|default:op.aprobado_por.username }}
@@ -176,14 +195,10 @@
             {% endif %}
           </div>
         </td>
-
-        <td>
-          <div class="line"></div>
-          <div><b>Vo.Bo. Dirección</b></div>
-          <div class="muted">—</div>
-        </td>
       </tr>
-    </table>
+</table>
+
+    
   </div>
 
 </div>
