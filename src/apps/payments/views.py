@@ -3,14 +3,16 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from apps.core.permissions import is_creator, is_reviewer, is_approver
+from apps.core.permissions import is_reviewer, is_approver
+from apps.core.utils import monto_en_letras
 
 from .forms import PaymentOrderForm
-from .models import PaymentOrder
+from .models import PaymentOrder, PaymentOrderItem
 
 
 @login_required
@@ -72,13 +74,33 @@ def op_detail(request, pk: int):
     else:
         form = PaymentOrderForm(instance=op)
 
-    # Totales (no tocar lógica si ya la tienes en template/print)
-    total_items = Decimal("0")
-    for it in op.items.all():
-        total_items += (it.cantidad or Decimal("0")) * (it.precio_unit or Decimal("0"))
+    items_qs = op.items.select_related("producto").all()
 
-    # Monto mostrado (respeta parcial/manual existente)
-    monto_total = op.monto_manual if op.monto_manual is not None else total_items
+    # Total calculado (por ítems)
+    total = Decimal("0")
+    for it in items_qs:
+        total += (it.cantidad or Decimal("0")) * (it.precio_unit or Decimal("0"))
+
+    # Monto a pagar (respeta monto_manual)
+    monto_a_pagar = op.monto_manual if op.monto_manual is not None else total
+    monto_letras = monto_en_letras(monto_a_pagar)
+
+    # Pago parcial / complemento
+    restante = None
+    complemento = None
+
+    if op.es_parcial:
+        restante = total - monto_a_pagar
+        if restante < 0:
+            restante = Decimal("0")
+        complemento = op.complementos.order_by("-creado_en").first()
+
+    puede_crear_complemento = (
+        op.es_parcial
+        and (restante is not None and restante > 0)
+        and complemento is None
+        and op.estado == PaymentOrder.Status.APROBADO
+    )
 
     return render(
         request,
@@ -86,8 +108,13 @@ def op_detail(request, pk: int):
         {
             "op": op,
             "form": form,
-            "items": op.items.select_related("producto").all(),
-            "monto_total": monto_total,
+            "items": items_qs,
+            "total": total,
+            "monto_a_pagar": monto_a_pagar,
+            "monto_letras": monto_letras,
+            "restante": restante,
+            "complemento": complemento,
+            "puede_crear_complemento": puede_crear_complemento,
             "puede_editar": puede_editar,
             "is_reviewer": (request.user.is_superuser or is_reviewer(request.user)),
             "is_approver": (request.user.is_superuser or is_approver(request.user)),
@@ -219,3 +246,122 @@ def op_back_to_draft(request, pk: int):
 
     messages.success(request, "OP devuelta a borrador.")
     return redirect("op_detail", pk=pk)
+
+
+# =========================
+# IMPRIMIR
+# =========================
+
+@login_required
+def op_print(request, pk: int):
+    op = get_object_or_404(PaymentOrder, pk=pk)
+
+    # Permiso de impresión: creador, reviewer, approver o superuser
+    if not (
+        request.user.is_superuser
+        or is_reviewer(request.user)
+        or is_approver(request.user)
+        or op.creado_por_id == request.user.id
+    ):
+        return HttpResponseForbidden("No tienes permiso para ver esta Orden de Pago.")
+
+    items = list(op.items.select_related("producto").all())
+
+    total = Decimal("0")
+    for it in items:
+        total += (it.cantidad or Decimal("0")) * (it.precio_unit or Decimal("0"))
+
+    monto_a_pagar = op.monto_manual if op.monto_manual is not None else total
+    monto_letras = monto_en_letras(monto_a_pagar)
+
+    return render(
+        request,
+        "payments/op_print.html",
+        {
+            "op": op,
+            "items": items,
+            "total": total,
+            "monto_a_pagar": monto_a_pagar,
+            "monto_letras": monto_letras,
+        },
+    )
+
+
+# =========================
+# PAGO COMPLEMENTARIO (ANTICIPO)
+# =========================
+
+@login_required
+def op_create_complement(request, pk: int):
+    """
+    Crea una OP complemento (restante) a partir de una OP parcial (anticipo).
+    Mantiene la lógica existente: mismo cuadro, proveedor y copia de ítems;
+    monto_manual = restante.
+    """
+    base = get_object_or_404(PaymentOrder, pk=pk)
+
+    # Solo el creador (o superuser) puede crear complemento
+    if not (request.user.is_superuser or base.creado_por_id == request.user.id):
+        return HttpResponseForbidden("No tienes permiso para crear un complemento de esta OP.")
+
+    if not base.es_parcial:
+        messages.error(request, "Esta OP no es un pago parcial (anticipo).")
+        return redirect("op_detail", pk=base.pk)
+
+    if base.estado != PaymentOrder.Status.APROBADO:
+        messages.error(request, "Solo puedes crear el complemento cuando el anticipo está APROBADO.")
+        return redirect("op_detail", pk=base.pk)
+
+    existente = base.complementos.order_by("-creado_en").first()
+    if existente:
+        messages.info(request, "Ya existe un complemento para este anticipo.")
+        return redirect("op_detail", pk=existente.pk)
+
+    items_base = list(base.items.select_related("producto").all())
+
+    total = Decimal("0")
+    for it in items_base:
+        total += (it.cantidad or Decimal("0")) * (it.precio_unit or Decimal("0"))
+
+    monto_base = base.monto_manual if base.monto_manual is not None else total
+    restante = total - monto_base
+    if restante <= 0:
+        messages.error(request, "No hay restante para crear complemento.")
+        return redirect("op_detail", pk=base.pk)
+
+    with transaction.atomic():
+        op = PaymentOrder.objects.create(
+            cuadro=base.cuadro,
+            proveedor=base.proveedor,
+            para=base.para,
+            cargo_para=base.cargo_para,
+            de=base.de,
+            cargo_de=base.cargo_de,
+            fecha_solicitud=timezone.localdate(),
+            proyecto=base.proyecto,
+            partida_contable=base.partida_contable,
+            con_factura=base.con_factura,
+            efectivo=base.efectivo,
+            descripcion=base.descripcion,
+            es_parcial=False,
+            monto_manual=restante,
+            pago_parcial_de=base,
+            estado=PaymentOrder.Status.BORRADOR,
+            creado_por=request.user,
+        )
+
+        PaymentOrderItem.objects.bulk_create(
+            [
+                PaymentOrderItem(
+                    orden=op,
+                    producto=it.producto,
+                    unidad=it.unidad,
+                    cantidad=it.cantidad,
+                    precio_unit=it.precio_unit,
+                )
+                for it in items_base
+            ]
+        )
+
+    messages.success(request, f"Complemento creado: {op.number}")
+    return redirect("op_detail", pk=op.pk)
