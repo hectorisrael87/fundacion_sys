@@ -5,6 +5,7 @@
 <div class="card">
   <div style="display:flex; justify-content:space-between; align-items:center;">
     <h2 style="margin:0;">Proveedores</h2>
+    <a href="{% url 'provider_create' %}?next={{ request.path }}">+ Nuevo proveedor</a>
   </div>
 
   <table style="width:100%; border-collapse:collapse; margin-top:12px;">
@@ -13,6 +14,7 @@
         <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Nombre</th>
         <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">NIT</th>
         <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Teléfono</th>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -21,9 +23,12 @@
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ p.nombre_empresa }}</td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ p.nit|default:"-" }}</td>
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ p.telefono|default:"-" }}</td>
+          <td style="padding:8px; border-bottom:1px solid #f0f0f0; white-space:nowrap;">
+            <a title="Editar" href="{% url 'provider_edit' p.pk %}?next={{ request.path }}">✏️</a>
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="3" style="padding:8px;">No hay proveedores.</td></tr>
+        <tr><td colspan="4" style="padding:8px;">No hay proveedores.</td></tr>
       {% endfor %}
     </tbody>
   </table>

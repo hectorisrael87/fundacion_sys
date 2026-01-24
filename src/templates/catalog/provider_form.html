@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Nuevo proveedor{% endblock %}
+{% block title %}{{ title|default:"Proveedor" }}{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width: 800px;">
-  <h2>Nuevo proveedor</h2>
+  <h2>{{ title|default:"Proveedor" }}</h2>
 
   <form method="post">
     {% csrf_token %}

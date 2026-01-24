@@ -25,12 +25,18 @@ from apps.procurement.views import (
     cc_delete_item,
     cc_edit_supplier,
     cc_delete_supplier,
+
+    # eliminar cuadro
+    cc_delete,
 )
 
 urlpatterns = [
     path("cuadros/", cc_list, name="cc_list"),
     path("cuadros/nuevo/", cc_create, name="cc_create"),
     path("cuadros/<int:pk>/", cc_detail, name="cc_detail"),
+
+    # eliminar cuadro (listado)
+    path("cuadros/<int:pk>/eliminar/", cc_delete, name="cc_delete"),
 
     # productos/proveedores
     path("cuadros/<int:pk>/producto/", cc_add_item, name="cc_add_item"),

@@ -11,6 +11,8 @@ from django.utils import timezone
 from apps.catalog.models import Provider
 from apps.core.permissions import is_creator, is_reviewer, is_approver
 from apps.payments.models import PaymentOrder, PaymentOrderItem
+from django.db.models.deletion import ProtectedError
+
 
 from .forms import (
     ComparativeItemForm,
@@ -108,6 +110,34 @@ def cc_detail(request, pk: int):
         },
     )
 
+@login_required
+def cc_delete(request, pk: int):
+    cc = get_object_or_404(ComparativeQuote, pk=pk)
+
+    # Solo creador o superuser
+    if not (request.user.is_superuser or cc.creado_por_id == request.user.id):
+        return HttpResponseForbidden("No tienes permiso para eliminar este cuadro.")
+
+    # Solo se elimina en BORRADOR (para evitar romper flujo)
+    if not request.user.is_superuser and cc.estado != ComparativeQuote.Status.BORRADOR:
+        messages.error(request, "Solo puedes eliminar un cuadro en estado BORRADOR.")
+        return redirect("cc_list")
+
+    # POST obligatorio
+    if request.method != "POST":
+        return redirect("cc_list")
+
+    try:
+        cc.delete()
+        messages.success(request, f"Cuadro eliminado: {cc.number}")
+    except ProtectedError:
+        # Por si existen OPs u otras relaciones PROTECT
+        messages.error(
+            request,
+            "No se puede eliminar este cuadro porque tiene órdenes de pago u otros registros asociados.",
+        )
+
+    return redirect("cc_list")
 
 @login_required
 def cc_add_item(request, pk):
