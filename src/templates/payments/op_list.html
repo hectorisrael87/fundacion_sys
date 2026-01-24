@@ -21,19 +21,27 @@
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
             <a href="{% url 'op_detail' op.pk %}">{{ op.number }}</a>
           </td>
+
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
             {{ op.proveedor.nombre_empresa|default:op.proveedor }}
           </td>
+
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
             {{ op.cuadro.number|default:op.cuadro }}
           </td>
+
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            {% if (is_reviewer or is_approver) and op.estado != "APROBADO" %}
-              Pendiente
+            {% if is_reviewer or is_approver %}
+              {% if op.estado != "APROBADO" %}
+                Pendiente
+              {% else %}
+                {{ op.get_estado_display }}
+              {% endif %}
             {% else %}
               {{ op.get_estado_display }}
             {% endif %}
           </td>
+
           <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
             {{ op.creado_en|date:"d/m/Y H:i" }}
           </td>
