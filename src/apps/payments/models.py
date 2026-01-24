@@ -11,12 +11,17 @@ class PaymentOrder(models.Model):
     class Status(models.TextChoices):
         BORRADOR = "BORRADOR", "Borrador"
         EN_REVISION = "EN_REVISION", "En revisión"
+        REVISADO = "REVISADO", "Revisado"
         APROBADO = "APROBADO", "Aprobado"
 
     number = models.CharField(max_length=30, unique=True, blank=True)
 
-    cuadro = models.ForeignKey(ComparativeQuote, on_delete=models.PROTECT, related_name="ordenes_pago")
-    proveedor = models.ForeignKey(Provider, on_delete=models.PROTECT, related_name="ordenes_pago")
+    cuadro = models.ForeignKey(
+        ComparativeQuote, on_delete=models.PROTECT, related_name="ordenes_pago"
+    )
+    proveedor = models.ForeignKey(
+        Provider, on_delete=models.PROTECT, related_name="ordenes_pago"
+    )
 
     para = models.CharField(max_length=200, blank=True)
     cargo_para = models.CharField(max_length=200, blank=True)
@@ -31,7 +36,9 @@ class PaymentOrder(models.Model):
     descripcion = models.TextField(blank=True)
 
     es_parcial = models.BooleanField(default=False)
-    monto_manual = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    monto_manual = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
     pago_parcial_de = models.ForeignKey(
         "self",
         null=True,
@@ -40,16 +47,31 @@ class PaymentOrder(models.Model):
         related_name="complementos",
     )
 
-    estado = models.CharField(max_length=20, choices=Status.choices, default=Status.BORRADOR)
+    estado = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.BORRADOR
+    )
 
-    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="op_creadas")
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="op_creadas"
+    )
     creado_en = models.DateTimeField(auto_now_add=True)
+
+    # ✅ Nuevo: registro de revisión
+    revisado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="op_revisadas",
+    )
+    revisado_en = models.DateTimeField(null=True, blank=True)
 
     aprobado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         on_delete=models.PROTECT,
-        related_name="op_aprobadas"
+        related_name="op_aprobadas",
     )
     aprobado_en = models.DateTimeField(null=True, blank=True)
 
@@ -60,8 +82,6 @@ class PaymentOrder(models.Model):
 
     def __str__(self):
         return self.number
-    
-    
 
 
 class PaymentOrderItem(models.Model):
@@ -76,8 +96,7 @@ class PaymentOrderItem(models.Model):
 
     @property
     def subtotal(self):
-            return (self.cantidad or Decimal("0")) * (self.precio_unit or Decimal("0"))
-
+        return (self.cantidad or Decimal("0")) * (self.precio_unit or Decimal("0"))
 
     def __str__(self):
-            return f"{self.orden.number} - {self.producto.nombre}"
+        return f"{self.orden.number} - {self.producto.nombre}"
