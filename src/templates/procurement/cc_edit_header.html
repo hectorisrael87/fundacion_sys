@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Editar cabecera{% endblock %}
+
+{% block content %}
+<div class="modal">
+  <a class="modal-backdrop" href="{% url 'cc_detail' cc.pk %}" aria-label="Cerrar"></a>
+
+  <div class="modal-panel">
+    <div class="card">
+      <div class="modal-header">
+        <div>
+          <h2 class="m0">{{ cc.number }} – Editar cabecera</h2>
+          <div class="muted mt-xs">Edita Item cotizado, Proyecto y Expresado en.</div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cc_detail' cc.pk %}">✕</a>
+      </div>
+
+      <form method="post" class="mt-md">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="form-grid">
+          <div class="field">
+            <div class="label">Item cotizado</div>
+            {{ form.item_cotizado }}
+            {% if form.item_cotizado.errors %}<div class="error">{{ form.item_cotizado.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <div class="label">Proyecto</div>
+            {{ form.proyecto }}
+            {% if form.proyecto.errors %}<div class="error">{{ form.proyecto.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <div class="label">Expresado en</div>
+            {{ form.expresado_en }}
+            {% if form.expresado_en.errors %}<div class="error">{{ form.expresado_en.errors }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit">💾 Guardar</button>
+          <a class="btn btn-ghost" href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

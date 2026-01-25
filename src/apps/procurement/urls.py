@@ -28,12 +28,18 @@ from apps.procurement.views import (
 
     # eliminar cuadro
     cc_delete,
+
+    # ✅ editar cabecera
+    cc_edit_header,
 )
 
 urlpatterns = [
     path("cuadros/", cc_list, name="cc_list"),
     path("cuadros/nuevo/", cc_create, name="cc_create"),
     path("cuadros/<int:pk>/", cc_detail, name="cc_detail"),
+
+    # ✅ editar cabecera (Item/Proyecto/Expresado en)
+    path("cuadros/<int:pk>/editar/", cc_edit_header, name="cc_edit_header"),
 
     # eliminar cuadro (listado)
     path("cuadros/<int:pk>/eliminar/", cc_delete, name="cc_delete"),

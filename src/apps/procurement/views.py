@@ -95,6 +95,34 @@ def cc_create(request):
 
     return render(request, "procurement/cc_form.html", {"form": form})
 
+@login_required
+def cc_edit_header(request, pk: int):
+    cc = get_object_or_404(ComparativeQuote, pk=pk)
+
+    # Solo creador o revisor (o superuser)
+    if not (
+        request.user.is_superuser
+        or is_reviewer(request.user)
+        or cc.creado_por_id == request.user.id
+    ):
+        messages.error(request, "No tienes permiso para editar la cabecera de este cuadro.")
+        return redirect("cc_detail", pk=pk)
+
+    # Si está aprobado: no se puede editar (excepto superuser)
+    if cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser:
+        messages.error(request, "Este cuadro está APROBADO: la cabecera está bloqueada.")
+        return redirect("cc_detail", pk=pk)
+
+    if request.method == "POST":
+        form = ComparativeQuoteForm(request.POST, instance=cc)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Cabecera actualizada.")
+            return redirect("cc_detail", pk=pk)
+    else:
+        form = ComparativeQuoteForm(instance=cc)
+
+    return render(request, "procurement/cc_edit_header.html", {"cc": cc, "form": form})
 
 @login_required
 def cc_detail(request, pk: int):
@@ -435,7 +463,9 @@ def cc_send_review(request, pk):
 
     # Solo el creador (o superuser) puede enviar a revisión
     if not (request.user.is_superuser or cc.creado_por_id == request.user.id):
-        return HttpResponseForbidden("No tienes permiso para enviar este cuadro a revisión.")
+        messages.error(request, "No tienes permiso para enviar este cuadro a revisión.")
+        return redirect("cc_detail", pk=pk)
+
 
     if cc.estado == ComparativeQuote.Status.APROBADO:
         messages.error(request, "Este cuadro ya está aprobado y no puede volver a revisión.")
@@ -541,6 +571,11 @@ def cc_back_to_draft(request, pk):
 
 @login_required
 def cc_generate_ops(request, pk):
+    # Solo creador (o superuser) puede generar OPs desde el cuadro
+    if not (request.user.is_superuser or cc.creado_por_id == request.user.id):
+        messages.error(request, "No tienes permiso para generar órdenes de pago desde este cuadro.")
+        return redirect("cc_detail", pk=pk)
+
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
     items = list(cc.items.select_related("producto").all())

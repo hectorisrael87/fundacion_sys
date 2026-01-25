@@ -25,6 +25,12 @@
           <div><b>Item cotizado:</b> {{ cc.item_cotizado }}</div>
           <div><b>Proyecto:</b> {{ cc.proyecto }}</div>
           <div><b>Expresado en:</b> {{ cc.expresado_en }}</div>
+
+          {% if not cc_bloqueado and (user.is_superuser or is_reviewer or cc.creado_por_id == user.id) %}
+            <div class="mt-sm">
+              <a class="btn btn-ghost btn-sm" href="{% url 'cc_edit_header' cc.pk %}">✏️ Editar cabecera</a>
+            </div>
+          {% endif %}
         </div>
 
         <div style="margin-top:12px;">
@@ -265,7 +271,12 @@
 
     <div class="hstack mt-md">
       {% if cc.estado == "BORRADOR" %}
-        <a class="btn btn-primary" href="{% url 'cc_send_review' cc.pk %}">📤 Enviar a revisión</a>
+        {% if user.is_superuser or cc.creado_por_id == user.id %}
+          <a class="btn btn-primary" href="{% url 'cc_send_review' cc.pk %}">📤 Enviar a revisión</a>
+        {% else %}
+          <span class="muted">📝 En borrador (solo el creador puede enviar a revisión).</span>
+        {% endif %}
+
       {% elif cc.estado == "EN_REVISION" %}
         {% if is_reviewer %}
           <a class="btn btn-primary" href="{% url 'cc_mark_reviewed' cc.pk %}">✅ Marcar como revisado</a>
