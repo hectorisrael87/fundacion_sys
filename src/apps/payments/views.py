@@ -1,6 +1,6 @@
 from collections import defaultdict
 from decimal import Decimal
-
+from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -24,23 +24,31 @@ def op_list(request):
         .order_by("-creado_en")
     )
 
-    # Visibilidad:
-    # - Revisor/Aprobador/Superuser: ven todo
-    # - Creador: ve solo lo suyo
-    if not (
-        request.user.is_superuser
-        or is_reviewer(request.user)
-        or is_approver(request.user)
-    ):
-        qs = qs.filter(creado_por=request.user)
-
     is_rev = (request.user.is_superuser or is_reviewer(request.user))
     is_app = (request.user.is_superuser or is_approver(request.user))
+
+    # Visibilidad:
+    # - Superuser: ve todo (incluye borradores de cualquiera)
+    # - Revisor/Aprobador: ve todo EXCEPTO borradores ajenos (solo ve sus borradores)
+    # - Creador sin rol: ve solo lo suyo
+    if request.user.is_superuser:
+        pass
+    elif is_rev or is_app:
+        qs = qs.filter(
+            Q(estado__in=[
+                PaymentOrder.Status.EN_REVISION,
+                PaymentOrder.Status.REVISADO,
+                PaymentOrder.Status.APROBADO,
+            ]) | Q(creado_por=request.user)
+        )
+    else:
+        qs = qs.filter(creado_por=request.user)
 
     # Tabs (filtros)
     status = (request.GET.get("status") or "all").lower()
 
     if status in ("draft", "borrador"):
+        # Para revisor/aprobador esto mostrará SOLO sus borradores (por la regla de visibilidad)
         qs = qs.filter(estado=PaymentOrder.Status.BORRADOR)
 
     elif status in ("pending", "pendiente"):
@@ -70,7 +78,7 @@ def op_list(request):
             "ordenes": qs,
             "is_reviewer": is_rev,
             "is_approver": is_app,
-            "status": status,  # para marcar tab activo
+            "status": status,
         },
     )
 
@@ -78,6 +86,12 @@ def op_list(request):
 @login_required
 def op_detail(request, pk: int):
     op = get_object_or_404(PaymentOrder, pk=pk)
+    # Si está en BORRADOR, solo el creador o superuser pueden verlo
+    if op.estado == PaymentOrder.Status.BORRADOR and not (
+        request.user.is_superuser or op.creado_por_id == request.user.id
+    ):
+        messages.error(request, "Esta OP está en borrador y aún no está disponible para revisión.")
+        return redirect("op_list")
 
     # Lectura:
     # - creador (dueño), revisor, aprobador o superuser
