@@ -16,8 +16,7 @@
         </div>
         <a class="btn btn-ghost btn-sm" href="{{ back_url }}">✕</a>
       </div>
-
-      <form method="post" class="mt-md" style="margin-top:0;">
+      <form method="post" class="mt-md">
         {% csrf_token %}
 
         {% if form.non_field_errors %}
@@ -32,7 +31,7 @@
           <button class="btn btn-primary" type="submit">💾 Guardar</button>
           <a class="btn btn-ghost" href="{{ back_url }}">Cancelar</a>
         </div>
-      </form>
+      </form>     
     </div>
   </div>
 </div>
