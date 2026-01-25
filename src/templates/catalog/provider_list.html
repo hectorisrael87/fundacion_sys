@@ -12,6 +12,13 @@
     <a class="btn btn-primary" href="{% url 'provider_create' %}?next={{ request.path }}">＋ Nuevo proveedor</a>
   </div>
 
+  <div class="tabs">
+    <a class="tab {% if f == 'all' %}active{% endif %}" href="{% url 'provider_list' %}">Todos</a>
+    <a class="tab {% if f == 'incomplete' %}active{% endif %}" href="{% url 'provider_list' %}?f=incomplete">Incompletos</a>
+    <a class="tab {% if f == 'with_nit' %}active{% endif %}" href="{% url 'provider_list' %}?f=with_nit">Con NIT</a>
+    <a class="tab {% if f == 'no_nit' %}active{% endif %}" href="{% url 'provider_list' %}?f=no_nit">Sin NIT</a>
+  </div>
+
   <table class="table">
     <thead>
       <tr>

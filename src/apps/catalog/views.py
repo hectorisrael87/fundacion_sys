@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.catalog.models import Provider
 from .forms import ProviderForm, ProductForm
+from django.db import models
 
 
 @login_required
@@ -76,4 +77,28 @@ def product_create(request):
 @login_required
 def provider_list(request):
     proveedores = Provider.objects.order_by("nombre_empresa")
-    return render(request, "catalog/provider_list.html", {"proveedores": proveedores})
+
+    f = (request.GET.get("f") or "all").lower()
+
+    if f == "incomplete":
+        # Incompleto = faltan datos importantes (campos vacíos)
+        proveedores = proveedores.filter(
+            models.Q(nit="") |
+            models.Q(telefono="") |
+            models.Q(direccion="") |
+            models.Q(entidad="") |
+            models.Q(nro_cuenta="") |
+            models.Q(datos_transferencia="")
+        )
+    elif f == "with_nit":
+        proveedores = proveedores.exclude(nit="")
+    elif f == "no_nit":
+        proveedores = proveedores.filter(nit="")
+    else:
+        f = "all"
+
+    return render(
+        request,
+        "catalog/provider_list.html",
+        {"proveedores": proveedores, "f": f},
+    )

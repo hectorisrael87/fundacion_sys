@@ -14,7 +14,6 @@ from apps.core.utils import monto_en_letras
 from .forms import PaymentOrderForm
 from .models import PaymentOrder, PaymentOrderItem
 
-
 @login_required
 def op_list(request):
     qs = (
@@ -35,16 +34,45 @@ def op_list(request):
     ):
         qs = qs.filter(creado_por=request.user)
 
+    is_rev = (request.user.is_superuser or is_reviewer(request.user))
+    is_app = (request.user.is_superuser or is_approver(request.user))
+
+    # Tabs (filtros)
+    status = (request.GET.get("status") or "all").lower()
+
+    if status in ("draft", "borrador"):
+        qs = qs.filter(estado=PaymentOrder.Status.BORRADOR)
+
+    elif status in ("pending", "pendiente"):
+        # Pendiente significa "lo que te toca":
+        # - Revisor: EN_REVISION
+        # - Aprobador: REVISADO
+        # - Creador: EN_REVISION o REVISADO
+        if is_rev and not is_app:
+            qs = qs.filter(estado=PaymentOrder.Status.EN_REVISION)
+        elif is_app and not is_rev:
+            qs = qs.filter(estado=PaymentOrder.Status.REVISADO)
+        else:
+            qs = qs.filter(
+                estado__in=[PaymentOrder.Status.EN_REVISION, PaymentOrder.Status.REVISADO]
+            )
+
+    elif status in ("approved", "aprobado"):
+        qs = qs.filter(estado=PaymentOrder.Status.APROBADO)
+
+    else:
+        status = "all"
+
     return render(
         request,
         "payments/op_list.html",
         {
             "ordenes": qs,
-            "is_reviewer": (request.user.is_superuser or is_reviewer(request.user)),
-            "is_approver": (request.user.is_superuser or is_approver(request.user)),
+            "is_reviewer": is_rev,
+            "is_approver": is_app,
+            "status": status,  # para marcar tab activo
         },
     )
-
 
 
 @login_required

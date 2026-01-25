@@ -10,6 +10,13 @@
     </div>
   </div>
 
+  <div class="tabs">
+    <a class="tab {% if status == 'all' %}active{% endif %}" href="{% url 'op_list' %}">Todos</a>
+    <a class="tab {% if status == 'draft' %}active{% endif %}" href="{% url 'op_list' %}?status=draft">Borrador</a>
+    <a class="tab {% if status == 'pending' %}active{% endif %}" href="{% url 'op_list' %}?status=pending">Pendiente</a>
+    <a class="tab {% if status == 'approved' %}active{% endif %}" href="{% url 'op_list' %}?status=approved">Aprobado</a>
+  </div>
+
   <table class="table">
     <thead>
       <tr>
