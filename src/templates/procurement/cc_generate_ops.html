@@ -1,51 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>{{ cc.number }} – Generar órdenes de pago</h2>
-<p>Asigna cada producto al proveedor que lo venderá. Se creará 1 OP por proveedor.</p>
+<div class="modal">
+  <a class="modal-backdrop" href="{% url 'cc_detail' cc.pk %}" aria-label="Cerrar"></a>
 
-<form method="post">
-  {% csrf_token %}
+  <div class="modal-panel" style="width: min(980px, 100%);">
+    <div class="card">
+      <div class="modal-header">
+        <div>
+          <h2 class="m0">{{ cc.number }} – Generar órdenes de pago</h2>
+          <div class="muted mt-xs">
+            Asigna cada producto al proveedor que lo venderá. Se creará 1 OP por proveedor.
+          </div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cc_detail' cc.pk %}">✕</a>
+      </div>
 
-  <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
-    <thead>
-      <tr>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Producto</th>
-        <th style="text-align:right; padding:8px; border-bottom:1px solid #ddd;">Cantidad</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #ddd;">Proveedor asignado</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for it in items %}
-        <tr>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            {{ it.producto.nombre }}
-          </td>
+      <form method="post" class="mt-md">
+        {% csrf_token %}
 
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">
-            {{ it.cantidad|floatformat:2 }} {{ it.unidad }}
-          </td>
-
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            <select name="asignado_{{ it.id }}" required>
-              <option value="">-- Seleccionar --</option>
-              {% for ps in proveedores %}
-                <option value="{{ ps.proveedor_id }}"
-                  {% if cc.proveedor_seleccionado and cc.proveedor_seleccionado.id == ps.id %}selected{% endif %}>
-                  {{ ps.proveedor.nombre_empresa }}
-                </option>
+        <div class="modal-body">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th class="text-right" style="width:180px;">Cantidad</th>
+                <th style="width:320px;">Proveedor asignado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for it in items %}
+                <tr>
+                  <td>{{ it.producto.nombre }}</td>
+                  <td class="text-right">{{ it.cantidad|floatformat:2 }} {{ it.unidad }}</td>
+                  <td>
+                    <select class="control" name="asignado_{{ it.id }}" required>
+                      <option value="">-- Seleccionar --</option>
+                      {% for ps in proveedores %}
+                        <option value="{{ ps.proveedor_id }}"
+                          {% if cc.proveedor_seleccionado and cc.proveedor_seleccionado.id == ps.id %}selected{% endif %}>
+                          {{ ps.proveedor.nombre_empresa }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </td>
+                </tr>
               {% endfor %}
-            </select>
-          </td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+            </tbody>
+          </table>
+        </div>
 
-  <p style="margin-top:16px;">
-    <button type="submit">Crear órdenes de pago</button>
-    <a href="{% url 'cc_detail' cc.pk %}" style="margin-left:10px;">Cancelar</a>
-  </p>
-</form>
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit">🧾 Crear órdenes de pago</button>
+          <a class="btn btn-ghost" href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 {% endblock %}

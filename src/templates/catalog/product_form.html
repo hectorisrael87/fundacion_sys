@@ -2,14 +2,39 @@
 {% block title %}Nuevo producto{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 800px;">
-  <h2>Nuevo producto</h2>
+{% firstof next_url request.GET.next '/' as back_url %}
 
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Guardar</button>
-    <a href="{{ next_url }}" style="margin-left:10px;">Cancelar</a>
-  </form>
+<div class="modal">
+  <a class="modal-backdrop" href="{{ back_url }}" aria-label="Cerrar"></a>
+
+  <div class="modal-panel">
+    <div class="card">
+      <div class="modal-header">
+        <div>
+          <h2 class="m0">Nuevo producto</h2>
+          <div class="muted mt-xs">Crea el producto para usarlo en el cuadro.</div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="{{ back_url }}">✕</a>
+      </div>
+
+      <form method="post" class="mt-md" style="margin-top:0;">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="modal-body">
+          {{ form.as_p }}
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit">💾 Guardar</button>
+          <a class="btn btn-ghost" href="{{ back_url }}">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
+
 {% endblock %}

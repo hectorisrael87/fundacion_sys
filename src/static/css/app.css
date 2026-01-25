@@ -603,49 +603,54 @@ body{
 }
 
 /* ==== Modal (CSS-only “ventana modal”) ==== */
+/* ==== Modal (fix backdrop + scroll interno) ==== */
 .modal{
   position:fixed;
   inset:0;
   z-index:50;
   display:flex;
-  justify-content:center;
   align-items:center;
+  justify-content:center;
   padding:24px;
-  overflow:auto; /* si el viewport es chico */
 }
 
 .modal-backdrop{
-  position:absolute;
+  position:fixed;   /* ✅ antes absolute */
   inset:0;
   background: rgba(15,23,42,.45);
 }
 
 .modal-panel{
   position:relative;
-  width: min(980px, 100%);
-  max-height: calc(100vh - 48px);  /* altura limitada */
+  width: min(760px, 100%);
+  max-height: calc(100vh - 48px); /* ✅ limita alto */
   display:flex;
   flex-direction:column;
 }
 
-.modal-header{
+/* la card del panel debe comportarse como contenedor vertical */
+.modal-panel > .card{
   display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:12px;
+  flex-direction:column;
+  max-height:100%;
 }
 
+/* ✅ scroll solo en el cuerpo */
+.modal-body{
+  overflow:auto;
+  flex:1;
+  padding-top:14px;
+}
+
+/* acciones siempre visibles abajo */
 .modal-actions{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
   margin-top:12px;
 }
-.modal-body{
-  overflow:auto;                 /* ✅ scroll interno */
-  padding-top:14px;
-  max-height: calc(100vh - 220px); /* deja espacio para header + botones */
-}
+
+
 /* inputs compactos para matriz de precios */
 .control-cell{
   width:120px;
