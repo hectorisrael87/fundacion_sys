@@ -111,3 +111,34 @@ class ComparativePrice(models.Model):
 
     def __str__(self):
         return f"{self.cuadro.number} - {self.proveedor} - {self.producto}"
+
+
+class ComparativeQuoteAttachment(models.Model):
+    """
+    Adjuntos (cotizaciones) del Cuadro Comparativo.
+    - Varios archivos por cuadro.
+    - Guarda quién lo subió y cuándo.
+    """
+    cuadro = models.ForeignKey(
+        ComparativeQuote,
+        on_delete=models.CASCADE,
+        related_name="adjuntos",
+    )
+    archivo = models.FileField(upload_to="cc_cotizaciones/%Y/%m/%d/")
+    nombre = models.CharField(max_length=255, blank=True)
+
+    subido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="cc_adjuntos_subidos",
+    )
+    subido_en = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.nombre and self.archivo:
+            # usa el nombre del archivo si no se definió uno manual
+            self.nombre = (getattr(self.archivo, "name", "") or "").split("/")[-1]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.cuadro.number} - {self.nombre or 'adjunto'}"

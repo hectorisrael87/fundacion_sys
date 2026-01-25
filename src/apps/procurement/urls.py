@@ -31,6 +31,10 @@ from apps.procurement.views import (
 
     # ✅ editar cabecera
     cc_edit_header,
+
+    # ✅ adjuntos
+    cc_attachment_upload,
+    cc_attachment_delete,
 )
 
 urlpatterns = [
@@ -53,6 +57,10 @@ urlpatterns = [
 
     # seleccionar proveedor
     path("cuadros/<int:pk>/seleccionar/", cc_select_supplier, name="cc_select_supplier"),
+
+    # adjuntos (cotizaciones)
+    path("cuadros/<int:pk>/adjuntos/upload/", cc_attachment_upload, name="cc_attachment_upload"),
+    path("cuadros/<int:pk>/adjuntos/<int:att_id>/eliminar/", cc_attachment_delete, name="cc_attachment_delete"),
 
     # flujo
     path("cuadros/<int:pk>/enviar-revision/", cc_send_review, name="cc_send_review"),

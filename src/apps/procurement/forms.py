@@ -1,5 +1,5 @@
 from django import forms
-from .models import ComparativeQuote, ComparativeItem, ComparativeSupplier
+from .models import ComparativeQuote, ComparativeItem, ComparativeSupplier, ComparativeQuoteAttachment
 
 
 def _add_control(form: forms.Form):
@@ -50,3 +50,15 @@ class ComparativeSelectionForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _add_control(self)
+
+
+class ComparativeAttachmentForm(forms.ModelForm):
+    class Meta:
+        model = ComparativeQuoteAttachment
+        fields = ["archivo"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _add_control(self)
+        # opcional: hint
+        self.fields["archivo"].help_text = "Adjunta cotizaciones (PDF/imagen)."

@@ -19,8 +19,10 @@ from .forms import (
     ComparativeQuoteForm,
     ComparativeSelectionForm,
     ComparativeSupplierForm,
+    ComparativeAttachmentForm,
 )
-from .models import ComparativeQuote
+from .models import ComparativeQuote, ComparativeQuoteAttachment
+
 
 
 @login_required
@@ -170,12 +172,24 @@ def cc_detail(request, pk: int):
 
     # 🔒 Bloqueo visual/funcional cuando está APROBADO (excepto superuser)
     cc_bloqueado = (cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser)
+    
+    adjuntos = list(
+        cc.adjuntos.select_related("subido_por").all().order_by("-subido_en")
+    )
 
+    can_edit_docs = (
+        not cc_bloqueado
+        and (
+            request.user.is_superuser
+            or is_reviewer(request.user)
+            or cc.creado_por_id == request.user.id
+        )
+    )
     return render(
         request,
         "procurement/cc_detail.html",
         {
-            "cc": cc,
+           "cc": cc,
             "items": items,
             "proveedores": proveedores,
             "precios": precios,
@@ -185,6 +199,11 @@ def cc_detail(request, pk: int):
             "is_reviewer": (request.user.is_superuser or is_reviewer(request.user)),
             "is_approver": (request.user.is_superuser or is_approver(request.user)),
             "cc_bloqueado": cc_bloqueado,
+
+            # Adjuntos (cotizaciones)
+            "adjuntos": adjuntos,
+            "attachment_form": ComparativeAttachmentForm(),
+            "can_edit_docs": can_edit_docs,
         },
     )
 
@@ -714,3 +733,68 @@ def cc_print(request, pk: int):
             "total_general": total_general,
         },
     )
+
+@login_required
+def cc_attachment_upload(request, pk: int):
+    cc = get_object_or_404(ComparativeQuote, pk=pk)
+
+    # Si está en BORRADOR, solo el creador o superuser pueden verlo/subir
+    if cc.estado == ComparativeQuote.Status.BORRADOR and not (
+        request.user.is_superuser or cc.creado_por_id == request.user.id
+    ):
+        messages.error(request, "Este cuadro está en borrador y aún no está disponible para revisión.")
+        return redirect("cc_list")
+
+    # Permiso: solo creador o revisor (o superuser). Aprobador NO sube.
+    if not (
+        request.user.is_superuser
+        or is_reviewer(request.user)
+        or cc.creado_por_id == request.user.id
+    ):
+        return HttpResponseForbidden("No tienes permiso para adjuntar documentos a este cuadro.")
+
+    # Si está aprobado, no se permite adjuntar (excepto superuser)
+    if cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser:
+        messages.error(request, "El cuadro está APROBADO: no se pueden adjuntar documentos.")
+        return redirect("cc_detail", pk=pk)
+
+    if request.method != "POST":
+        return redirect("cc_detail", pk=pk)
+
+    form = ComparativeAttachmentForm(request.POST, request.FILES)
+    if form.is_valid():
+        att = form.save(commit=False)
+        att.cuadro = cc
+        att.subido_por = request.user
+        att.save()
+        messages.success(request, "Documento adjuntado.")
+    else:
+        messages.error(request, "No se pudo adjuntar el documento. Verifica el archivo.")
+
+    return redirect("cc_detail", pk=pk)
+
+
+@login_required
+def cc_attachment_delete(request, pk: int, att_id: int):
+    cc = get_object_or_404(ComparativeQuote, pk=pk)
+
+    # Permiso: solo creador o revisor (o superuser).
+    if not (
+        request.user.is_superuser
+        or is_reviewer(request.user)
+        or cc.creado_por_id == request.user.id
+    ):
+        return HttpResponseForbidden("No tienes permiso para eliminar adjuntos de este cuadro.")
+
+    # Si está aprobado, no se permite eliminar (excepto superuser)
+    if cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser:
+        messages.error(request, "El cuadro está APROBADO: no se pueden eliminar documentos.")
+        return redirect("cc_detail", pk=pk)
+
+    if request.method != "POST":
+        return redirect("cc_detail", pk=pk)
+
+    att = get_object_or_404(ComparativeQuoteAttachment, pk=att_id, cuadro=cc)
+    att.delete()
+    messages.success(request, "Documento eliminado.")
+    return redirect("cc_detail", pk=pk)
