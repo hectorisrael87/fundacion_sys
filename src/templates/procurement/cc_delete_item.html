@@ -1,22 +1,42 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card">
-  <h2>Eliminar producto – {{ cc.number }}</h2>
 
-  <p>¿Seguro que deseas eliminar este producto del cuadro?</p>
-  <ul>
-    <li><b>Producto:</b> {{ item.producto.nombre }}</li>
-    <li><b>Cantidad:</b> {{ item.cantidad|floatformat:2 }} {{ item.unidad }}</li>
-  </ul>
+<div class="modal">
+  <a class="modal-backdrop" href="{% url 'cc_detail' cc.pk %}" aria-label="Cerrar"></a>
 
-  <div class="muted" style="margin-top:10px;">
-    Esto también eliminará los precios de este producto en la matriz del cuadro.
+  <div class="modal-panel">
+    <div class="card">
+      <div class="modal-header">
+        <div>
+          <h2 class="m0">Eliminar producto – {{ cc.number }}</h2>
+          <div class="muted mt-xs">Confirma la eliminación del producto del cuadro.</div>
+        </div>
+
+        <a class="btn btn-ghost btn-sm" href="{% url 'cc_detail' cc.pk %}">✕</a>
+      </div>
+
+      <div class="mt-md">
+        <p class="m0">¿Seguro que deseas eliminar este producto del cuadro?</p>
+
+        <ul class="mt-sm">
+          <li><b>Producto:</b> {{ item.producto.nombre }}</li>
+          <li><b>Cantidad:</b> {{ item.cantidad|floatformat:2 }} {{ item.unidad }}</li>
+        </ul>
+
+        <div class="muted mt-sm">
+          Esto también eliminará los precios de este producto en la matriz del cuadro.
+        </div>
+      </div>
+
+      <form method="post" class="mt">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button class="btn btn-danger" type="submit">🗑️ Sí, eliminar</button>
+          <a class="btn btn-ghost" href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
+        </div>
+      </form>
+    </div>
   </div>
-
-  <form method="post" style="margin-top:14px;">
-    {% csrf_token %}
-    <button class="btn" type="submit">🗑️ Sí, eliminar</button>
-    <a class="btn" href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
-  </form>
 </div>
+
 {% endblock %}

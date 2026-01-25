@@ -1,19 +1,38 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card">
-  <h2>Editar proveedor – {{ cc.number }}</h2>
-  <p class="muted">Proveedor actual: <b>{{ sup.proveedor.nombre_empresa }}</b></p>
 
-  <form method="post">
-    {% csrf_token %}
-    <div style="margin-top:10px;">
-      {{ form.as_p }}
-    </div>
+<div class="modal">
+  <a class="modal-backdrop" href="{% url 'cc_detail' cc.pk %}" aria-label="Cerrar"></a>
 
-    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn" type="submit">💾 Guardar</button>
-      <a class="btn" href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
+  <div class="modal-panel">
+    <div class="card">
+      <div class="modal-header">
+        <div>
+          <h2 class="m0">Editar proveedor – {{ cc.number }}</h2>
+          <div class="muted mt-xs">
+            Proveedor actual: <b>{{ sup.proveedor.nombre_empresa }}</b>
+          </div>
+        </div>
+
+        <a class="btn btn-ghost btn-sm" href="{% url 'cc_detail' cc.pk %}">✕</a>
+      </div>
+
+      <form method="post" class="mt-md">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {{ form.as_p }}
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit">💾 Guardar</button>
+          <a class="btn btn-ghost" href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
+        </div>
+      </form>
     </div>
-  </form>
+  </div>
 </div>
+
 {% endblock %}
