@@ -1,255 +1,319 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="card">
-  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
-    <div>
-      <h2 style="margin:0;">Orden de pago: {{ op.number }}</h2>
+<div class="stack">
 
-      <div class="muted" style="margin-top:4px;">
-        Estado: <b>{{ op.get_estado_display }}</b> |
-        Cuadro: <a href="{% url 'cc_detail' op.cuadro.id %}">{{ op.cuadro.number }}</a>
+  <div class="card">
+    <div class="hstack between items-start">
+      <div>
+        <h2 class="m0">Orden de pago: {{ op.number }}</h2>
 
-        {% if op.es_parcial %}
-          | <b>Pago parcial (anticipo)</b>
-        {% endif %}
+        <div class="muted mt-xs">
+          Estado: <b>{{ op.get_estado_display }}</b> |
+          Cuadro: <a href="{% url 'cc_detail' op.cuadro.id %}">{{ op.cuadro.number }}</a>
 
-        {% if op.es_parcial and restante is not None %}
-          | Restante: <b>{{ restante|floatformat:2 }}</b>
-        {% endif %}
+          {% if op.es_parcial %}
+            | <b>Pago parcial (anticipo)</b>
+          {% endif %}
 
-        {% if complemento %}
-          | Complemento: <a href="{% url 'op_detail' complemento.pk %}">{{ complemento.number }}</a>
-        {% endif %}
+          {% if op.es_parcial and restante is not None %}
+            | Restante: <b>{{ restante|floatformat:2 }}</b>
+          {% endif %}
+
+          {% if complemento %}
+            | Complemento: <a href="{% url 'op_detail' complemento.pk %}">{{ complemento.number }}</a>
+          {% endif %}
+        </div>
+
+        {# Mensaje de estado arriba (solo texto) #}
+        <div class="mt-sm">
+          {% if op.estado == "BORRADOR" %}
+            <span class="muted">📝 En borrador.</span>
+          {% elif op.estado == "EN_REVISION" %}
+            {% if is_reviewer %}
+              <span class="muted">🛠️ En revisión: puedes corregir y luego marcar como revisado.</span>
+            {% else %}
+              <span class="muted">⏳ Pendiente de revisión.</span>
+            {% endif %}
+          {% elif op.estado == "REVISADO" %}
+            {% if is_approver %}
+              <span class="muted">⏳ Pendiente de aprobación.</span>
+            {% else %}
+              <span class="muted">✅ Revisado (pendiente de aprobación).</span>
+            {% endif %}
+          {% elif op.estado == "APROBADO" %}
+            <span class="muted">✅ Esta OP ya está aprobada.</span>
+          {% endif %}
+        </div>
       </div>
 
-      {# Mensaje de estado arriba (solo texto) #}
-      <div style="margin-top:6px;">
-        {% if op.estado == "BORRADOR" %}
-          <span class="muted">📝 En borrador.</span>
-        {% elif op.estado == "EN_REVISION" %}
-          {% if is_reviewer %}
-            <span class="muted">🛠️ En revisión: puedes corregir y luego marcar como revisado.</span>
-          {% else %}
-            <span class="muted">⏳ Pendiente de revisión.</span>
-          {% endif %}
-        {% elif op.estado == "REVISADO" %}
-          {% if is_approver %}
-            <span class="muted">⏳ Pendiente de aprobación.</span>
-          {% else %}
-            <span class="muted">✅ Revisado (pendiente de aprobación).</span>
-          {% endif %}
-        {% elif op.estado == "APROBADO" %}
-          <span class="muted">✅ Esta OP ya está aprobada.</span>
+      {# SOLO Imprimir y Complemento arriba (no movemos esto) #}
+      <div class="hstack">
+        <a class="btn btn-ghost" href="{% url 'op_print' op.pk %}" target="_blank">🖨️ Imprimir</a>
+
+        {% if puede_crear_complemento %}
+          <a class="btn" href="{% url 'op_create_complement' op.pk %}">➕ Crear pago complementario</a>
         {% endif %}
       </div>
-    </div>
-
-    {# SOLO Imprimir y Complemento arriba (no movemos esto) #}
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-      <a class="btn" href="{% url 'op_print' op.pk %}" target="_blank">🖨️ Imprimir</a>
-
-      {% if puede_crear_complemento %}
-        <a class="btn" href="{% url 'op_create_complement' op.pk %}">➕ Crear pago complementario</a>
-      {% endif %}
     </div>
   </div>
-</div>
 
-<form method="post">
-  {% csrf_token %}
+  <form method="post" class="stack">
+    {% csrf_token %}
 
-  <div class="card" style="margin-top:14px;">
-    <h3 style="margin-top:0;">Datos de la orden</h3>
+    <div class="card">
+      <h3 class="m0">Datos de la orden</h3>
 
-    {% if not puede_editar %}
-      <!-- <div class="muted" style="margin-bottom:10px;">
-        No editable en este estado
-      </div># -->
-    {% endif %}
-
-    <table style="width:100%; border-collapse:collapse;">
-      <tr>
-        <td style="padding:6px; width:15%;"><b>Para:</b></td>
-        <td style="padding:6px; width:35%;">{% if puede_editar %}{{ form.para }}{% else %}{{ op.para|default:"-" }}{% endif %}</td>
-
-        <td style="padding:6px; width:15%;"><b>Cargo Para:</b></td>
-        <td style="padding:6px; width:35%;">{% if puede_editar %}{{ form.cargo_para }}{% else %}{{ op.cargo_para|default:"-" }}{% endif %}</td>
-      </tr>
-
-      <tr>
-        <td style="padding:6px;"><b>De:</b></td>
-        <td style="padding:6px;">{% if puede_editar %}{{ form.de }}{% else %}{{ op.de|default:"-" }}{% endif %}</td>
-
-        <td style="padding:6px;"><b>Cargo De:</b></td>
-        <td style="padding:6px;">{% if puede_editar %}{{ form.cargo_de }}{% else %}{{ op.cargo_de|default:"-" }}{% endif %}</td>
-      </tr>
-
-      <tr>
-        <td style="padding:6px;"><b>Fecha solicitud:</b></td>
-        <td style="padding:6px;">{% if puede_editar %}{{ form.fecha_solicitud }}{% else %}{{ op.fecha_solicitud }}{% endif %}</td>
-
-        <td style="padding:6px;"><b>Monto Solicitado:</b></td>
-        <td style="padding:6px;">{% if puede_editar %}{{ form.monto_manual }}{% else %}{{ op.monto_manual|default:"-" }}{% endif %}</td>
-      </tr>
-
-      <tr>
-        <td style="padding:6px;"><b>Pago parcial:</b></td>
-        <td style="padding:6px;">
+      <div class="form-grid">
+        <div class="field">
+          <div class="label">Para</div>
           {% if puede_editar %}
-            {{ form.es_parcial }}
-            <span class="muted" style="margin-left:6px;">(marcar si es anticipo)</span>
+            {{ form.para }}
+            {{ form.para.errors }}
           {% else %}
-            {% if op.es_parcial %}Sí{% else %}No{% endif %}
+            <div class="control control-static">{{ op.para|default:"-" }}</div>
           {% endif %}
-        </td>
+        </div>
 
-        <td style="padding:6px;"></td>
-        <td style="padding:6px;"></td>
-      </tr>
-    </table>
+        <div class="field">
+          <div class="label">Cargo Para</div>
+          {% if puede_editar %}
+            {{ form.cargo_para }}
+            {{ form.cargo_para.errors }}
+          {% else %}
+            <div class="control control-static">{{ op.cargo_para|default:"-" }}</div>
+          {% endif %}
+        </div>
 
-    {% if puede_editar %}
-      <div style="margin-top:12px;">
-        <button class="btn" type="submit">💾 Guardar cambios</button>
+        <div class="field">
+          <div class="label">De</div>
+          {% if puede_editar %}
+            {{ form.de }}
+            {{ form.de.errors }}
+          {% else %}
+            <div class="control control-static">{{ op.de|default:"-" }}</div>
+          {% endif %}
+        </div>
+
+        <div class="field">
+          <div class="label">Cargo De</div>
+          {% if puede_editar %}
+            {{ form.cargo_de }}
+            {{ form.cargo_de.errors }}
+          {% else %}
+            <div class="control control-static">{{ op.cargo_de|default:"-" }}</div>
+          {% endif %}
+        </div>
+
+        <div class="field">
+          <div class="label">Fecha solicitud</div>
+          {% if puede_editar %}
+            {{ form.fecha_solicitud }}
+            {{ form.fecha_solicitud.errors }}
+          {% else %}
+            <div class="control control-static">{{ op.fecha_solicitud }}</div>
+          {% endif %}
+        </div>
+
+        <div class="field">
+          <div class="label">Monto solicitado</div>
+          {% if puede_editar %}
+            {{ form.monto_manual }}
+            {{ form.monto_manual.errors }}
+          {% else %}
+            <div class="control control-static">{{ op.monto_manual|default:"-" }}</div>
+          {% endif %}
+        </div>
+
+        <div class="field">
+          <div class="label">Pago parcial</div>
+          {% if puede_editar %}
+            <div class="hstack">
+              {{ form.es_parcial }}
+              <span class="muted">(marcar si es anticipo)</span>
+            </div>
+            {{ form.es_parcial.errors }}
+          {% else %}
+            <div class="control control-static">{% if op.es_parcial %}Sí{% else %}No{% endif %}</div>
+          {% endif %}
+        </div>
+
+        <div class="field"></div>
       </div>
-    {% endif %}
-  </div>
 
-  <div class="card" style="margin-top:14px;">
-    <h3 style="margin-top:0;">Descripción</h3>
-    {% if puede_editar %}
-      {{ form.descripcion }}
-    {% else %}
-      <div style="white-space:pre-wrap;">{{ op.descripcion|default:"-" }}</div>
-    {% endif %}
-  </div>
-
-  <div class="card" style="margin-top:14px;">
-    <h3 style="margin-top:0;">Detalle (Ítems)</h3>
-
-    <table class="table" style="width:100%; border-collapse:collapse;">
-      <thead>
-        <tr>
-          <th style="width:55%; text-align:left; border-bottom:1px solid #ddd; padding:8px;">Producto</th>
-          <th style="width:15%; text-align:right; border-bottom:1px solid #ddd; padding:8px;">Cantidad</th>
-          <th style="width:15%; text-align:right; border-bottom:1px solid #ddd; padding:8px;">PU</th>
-          <th style="width:15%; text-align:right; border-bottom:1px solid #ddd; padding:8px;">Subtotal</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for it in items %}
-        <tr>
-          <td style="padding:8px;">{{ it.producto.nombre }}</td>
-          <td style="padding:8px; text-align:right;">{{ it.cantidad|floatformat:2 }} {{ it.unidad }}</td>
-          <td style="padding:8px; text-align:right;">{{ it.precio_unit|floatformat:2 }}</td>
-          <td style="padding:8px; text-align:right;">{{ it.subtotal|floatformat:2 }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="4" style="padding:8px;">Sin ítems.</td></tr>
-        {% endfor %}
-
-        <tr>
-          <td colspan="3" style="padding:8px; text-align:right; font-weight:bold;">Total calculado</td>
-          <td style="padding:8px; text-align:right; font-weight:bold;">{{ total|floatformat:2 }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="card" style="margin-top:14px;">
-    <h3 style="margin-top:0;">Información de Pago</h3>
-
-    <table style="width:100%; border-collapse:collapse;">
-      <tr>
-        <td style="padding:6px; width:15%;"><b>Proyecto:</b></td>
-        <td style="padding:6px; width:35%;">{% if puede_editar %}{{ form.proyecto }}{% else %}{{ op.proyecto|default:"-" }}{% endif %}</td>
-
-        <td style="padding:6px; width:15%;"><b>Partida contable:</b></td>
-        <td style="padding:6px; width:35%;">{% if puede_editar %}{{ form.partida_contable }}{% else %}{{ op.partida_contable|default:"-" }}{% endif %}</td>
-      </tr>
-
-      <tr>
-        <td style="padding:6px;"><b>Con factura:</b></td>
-        <td style="padding:6px;">{% if puede_editar %}{{ form.con_factura }}{% else %}{{ op.con_factura|default:"-" }}{% endif %}</td>
-
-        <td style="padding:6px;"><b>Efectivo:</b></td>
-        <td style="padding:6px;">{% if puede_editar %}{{ form.efectivo }}{% else %}{{ op.efectivo|default:"-" }}{% endif %}</td>
-      </tr>
-
-      <tr>
-        <td style="padding:6px;"><b>Total a pagar:</b></td>
-        <td style="padding:6px;"><b>{{ monto_a_pagar|floatformat:2 }}</b></td>
-
-        <td style="padding:6px;"><b>Son:</b></td>
-        <td style="padding:6px;">{{ monto_letras }}</td>
-      </tr>
-    </table>
-  </div>
-
-  <div class="card" style="margin-top:14px;">
-    <h3 style="margin-top:0;">Proveedor</h3>
-    <p><b>Nombre:</b> {{ op.proveedor.nombre_empresa }}</p>
-    <p><b>Dirección:</b> {{ op.proveedor.direccion|default:"-" }}</p>
-    <p><b>Teléfono:</b> {{ op.proveedor.telefono|default:"-" }}</p>
-    <p><b>CI:</b> {{ op.proveedor.ci|default:"-" }} &nbsp; <b>NIT:</b> {{ op.proveedor.nit|default:"-" }}</p>
-    <p><b>Datos de transferencia:</b> {{ op.proveedor.datos_transferencia|default:"-" }}</p>
-    <p><b>Entidad:</b> {{ op.proveedor.entidad|default:"-" }}</p>
-    <p><b>Nro. Cuenta:</b> {{ op.proveedor.nro_cuenta|default:"-" }}</p>
-  </div>
-
-</form>
-
-<div class="card" style="margin-top:14px;">
-  <h3 style="margin-top:0;">Registro</h3>
-
-  <p style="margin:6px 0;">
-    <b>Creado por:</b> {{ op.creado_por.get_full_name|default:op.creado_por.username }}
-    {% if op.creado_en %} ({{ op.creado_en|date:"d/m/Y H:i" }}){% endif %}
-  </p>
-
-  <p style="margin:6px 0;">
-    <b>Revisado por:</b>
-    {% if op.revisado_por %}
-      {{ op.revisado_por.get_full_name|default:op.revisado_por.username }}
-      {% if op.revisado_en %} ({{ op.revisado_en|date:"d/m/Y H:i" }}){% endif %}
-    {% else %}
-      —
-    {% endif %}
-  </p>
-
-  <p style="margin:6px 0;">
-    <b>Aprobado por:</b>
-    {% if op.aprobado_por %}
-      {{ op.aprobado_por.get_full_name|default:op.aprobado_por.username }}
-      {% if op.aprobado_en %} ({{ op.aprobado_en|date:"d/m/Y H:i" }}){% endif %}
-    {% else %}
-      —
-    {% endif %}
-  </p>
-</div>
-
-{# Botones abajo (después de Registro) #}
-<div class="card" style="margin-top:14px;">
-  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-
-    {% if op.estado == "BORRADOR" %}
-      {% if op.creado_por_id == user.id or user.is_superuser %}
-        <a class="btn" href="{% url 'op_send_review' op.pk %}">📤 Enviar a revisión</a>
+      {% if puede_editar %}
+        <div class="mt-md">
+          <button class="btn btn-primary" type="submit">💾 Guardar cambios</button>
+        </div>
       {% endif %}
-    {% elif op.estado == "EN_REVISION" %}
-      {% if is_reviewer %}
-        <a class="btn" href="{% url 'op_mark_reviewed' op.pk %}">✅ Marcar como revisado</a>
-        <a class="btn" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
-      {% endif %}
-    {% elif op.estado == "REVISADO" %}
-      {% if is_approver %}
-        <a class="btn" href="{% url 'op_approve' op.pk %}">✅ Aprobar</a>
-      {% endif %}
-    {% endif %}
+    </div>
 
-    <a class="btn" href="{% url 'op_list' %}">← Volver</a>
+    <div class="card">
+      <h3 class="m0">Descripción</h3>
+      <div class="mt-sm">
+        {% if puede_editar %}
+          {{ form.descripcion }}
+          {{ form.descripcion.errors }}
+        {% else %}
+          <div class="prewrap">{{ op.descripcion|default:"-" }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="m0">Detalle (Ítems)</h3>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:55%;">Producto</th>
+            <th class="text-right" style="width:15%;">Cantidad</th>
+            <th class="text-right" style="width:15%;">PU</th>
+            <th class="text-right" style="width:15%;">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+          <tr>
+            <td>{{ it.producto.nombre }}</td>
+            <td class="text-right">{{ it.cantidad|floatformat:2 }} {{ it.unidad }}</td>
+            <td class="text-right">{{ it.precio_unit|floatformat:2 }}</td>
+            <td class="text-right">{{ it.subtotal|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">Sin ítems.</td></tr>
+          {% endfor %}
+
+          <tr>
+            <td colspan="3" class="text-right"><b>Total calculado</b></td>
+            <td class="text-right"><b>{{ total|floatformat:2 }}</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3 class="m0">Información de Pago</h3>
+
+      <div class="form-grid">
+        <div class="field">
+          <div class="label">Proyecto</div>
+          {% if puede_editar %}
+            {{ form.proyecto }}
+            {{ form.proyecto.errors }}
+          {% else %}
+            <div class="control control-static">{{ op.proyecto|default:"-" }}</div>
+          {% endif %}
+        </div>
+
+        <div class="field">
+          <div class="label">Partida contable</div>
+          {% if puede_editar %}
+            {{ form.partida_contable }}
+            {{ form.partida_contable.errors }}
+          {% else %}
+            <div class="control control-static">{{ op.partida_contable|default:"-" }}</div>
+          {% endif %}
+        </div>
+
+        <div class="field">
+          <div class="label">Con factura</div>
+          {% if puede_editar %}
+            {{ form.con_factura }}
+            {{ form.con_factura.errors }}
+          {% else %}
+            <div class="control control-static">{{ op.con_factura|default:"-" }}</div>
+          {% endif %}
+        </div>
+
+        <div class="field">
+          <div class="label">Efectivo</div>
+          {% if puede_editar %}
+            {{ form.efectivo }}
+            {{ form.efectivo.errors }}
+          {% else %}
+            <div class="control control-static">{{ op.efectivo|default:"-" }}</div>
+          {% endif %}
+        </div>
+
+        <div class="field">
+          <div class="label">Total a pagar</div>
+          <div class="control control-static"><b>{{ monto_a_pagar|floatformat:2 }}</b></div>
+        </div>
+
+        <div class="field">
+          <div class="label">Son</div>
+          <div class="control control-static">{{ monto_letras }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="m0">Proveedor</h3>
+      <div class="mt-sm">
+        <p><b>Nombre:</b> {{ op.proveedor.nombre_empresa }}</p>
+        <p><b>Dirección:</b> {{ op.proveedor.direccion|default:"-" }}</p>
+        <p><b>Teléfono:</b> {{ op.proveedor.telefono|default:"-" }}</p>
+        <p><b>CI:</b> {{ op.proveedor.ci|default:"-" }} &nbsp; <b>NIT:</b> {{ op.proveedor.nit|default:"-" }}</p>
+        <p><b>Datos de transferencia:</b> {{ op.proveedor.datos_transferencia|default:"-" }}</p>
+        <p><b>Entidad:</b> {{ op.proveedor.entidad|default:"-" }}</p>
+        <p><b>Nro. Cuenta:</b> {{ op.proveedor.nro_cuenta|default:"-" }}</p>
+      </div>
+    </div>
+
+  </form>
+
+  <div class="card kv">
+    <h3 class="m0">Registro</h3>
+
+    <p>
+      <b>Creado por:</b> {{ op.creado_por.get_full_name|default:op.creado_por.username }}
+      {% if op.creado_en %} ({{ op.creado_en|date:"d/m/Y H:i" }}){% endif %}
+    </p>
+
+    <p>
+      <b>Revisado por:</b>
+      {% if op.revisado_por %}
+        {{ op.revisado_por.get_full_name|default:op.revisado_por.username }}
+        {% if op.revisado_en %} ({{ op.revisado_en|date:"d/m/Y H:i" }}){% endif %}
+      {% else %}
+        —
+      {% endif %}
+    </p>
+
+    <p>
+      <b>Aprobado por:</b>
+      {% if op.aprobado_por %}
+        {{ op.aprobado_por.get_full_name|default:op.aprobado_por.username }}
+        {% if op.aprobado_en %} ({{ op.aprobado_en|date:"d/m/Y H:i" }}){% endif %}
+      {% else %}
+        —
+      {% endif %}
+    </p>
   </div>
+
+  {# Botones abajo (después de Registro) #}
+  <div class="card">
+    <div class="hstack">
+      {% if op.estado == "BORRADOR" %}
+        {% if op.creado_por_id == user.id or user.is_superuser %}
+          <a class="btn btn-primary" href="{% url 'op_send_review' op.pk %}">📤 Enviar a revisión</a>
+        {% endif %}
+      {% elif op.estado == "EN_REVISION" %}
+        {% if is_reviewer %}
+          <a class="btn btn-primary" href="{% url 'op_mark_reviewed' op.pk %}">✅ Marcar como revisado</a>
+          <a class="btn btn-ghost" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
+        {% endif %}
+      {% elif op.estado == "REVISADO" %}
+        {% if is_approver %}
+          <a class="btn btn-primary" href="{% url 'op_approve' op.pk %}">✅ Aprobar</a>
+        {% endif %}
+      {% endif %}
+
+      <a class="btn btn-ghost" href="{% url 'op_list' %}">← Volver</a>
+    </div>
+  </div>
+
 </div>
 
 {% endblock %}

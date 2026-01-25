@@ -43,7 +43,12 @@ class PaymentOrderForm(forms.ModelForm):
         if not self.initial.get("fecha_solicitud") and getattr(self.instance, "fecha_solicitud", None) is None:
             self.initial["fecha_solicitud"] = timezone.localdate()
 
-        # Estilos simples para inputs (opcional)
+                # UI: clases reutilizables (evitar estilos inline)
         for name, field in self.fields.items():
-            if isinstance(field.widget, (forms.TextInput, forms.DateInput, forms.NumberInput, forms.Textarea)):
-                field.widget.attrs.setdefault("style", "width:100%; padding:6px;")
+            w = field.widget
+            if isinstance(w, (forms.CheckboxInput, forms.RadioSelect)):
+                continue
+
+            existing = w.attrs.get("class", "")
+            w.attrs["class"] = (existing + " control").strip()
+

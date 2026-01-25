@@ -4,325 +4,303 @@
 
 {% block content %}
 
-<!-- 1) CABECERA -->
-<div class="card">
-  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
-    <div>
-      <h2 style="margin:0;">Cuadro comparativo: {{ cc.number }}</h2>
+<div class="stack">
 
-      <div class="muted" style="margin-top:6px;">
-        Estado: <b>{{ cc.get_estado_display }}</b>
-        &nbsp;|&nbsp; Fecha: {{ cc.creado_en|date:"d/m/Y H:i" }}
-      </div>
+  <!-- 1) CABECERA -->
+  <div class="card">
+    <div class="hstack between items-start">
+      <div>
+        <h2 class="m0">Cuadro comparativo: {{ cc.number }}</h2>
 
-      {% if cc_bloqueado %}
-        <div class="muted" style="margin-top:8px;">🔒 Este cuadro está APROBADO: edición bloqueada.</div>
-      {% endif %}
+        <div class="muted mt-sm">
+          Estado: <b>{{ cc.get_estado_display }}</b>
+          &nbsp;|&nbsp; Fecha: {{ cc.creado_en|date:"d/m/Y H:i" }}
+        </div>
 
-      <div style="margin-top:10px;">
-        <div><b>Item cotizado:</b> {{ cc.item_cotizado }}</div>
-        <div><b>Proyecto:</b> {{ cc.proyecto }}</div>
-        <div><b>Expresado en:</b> {{ cc.expresado_en }}</div>
-      </div>
-
-      <div style="margin-top:12px;">
-        <b>Órdenes creadas:</b>
-        {% if ordenes %}
-          {% for op in ordenes %}
-            <a href="{% url 'op_detail' op.id %}">{{ op.number }}</a>{% if not forloop.last %}, {% endif %}
-          {% endfor %}
-        {% else %}
-          Ninguna
+        {% if cc_bloqueado %}
+        <div class="muted" style="margin-top:8px;">🔒 Edición bloqueada.</div>
         {% endif %}
+
+        <div class="mt-md">
+          <div><b>Item cotizado:</b> {{ cc.item_cotizado }}</div>
+          <div><b>Proyecto:</b> {{ cc.proyecto }}</div>
+          <div><b>Expresado en:</b> {{ cc.expresado_en }}</div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <b>Órdenes creadas:</b>
+          {% if ordenes %}
+            <span style="display:inline-flex; gap:8px; flex-wrap:wrap; margin-left:8px;">
+              {% for op in ordenes %}
+                <a class="btn btn-ghost btn-sm" href="{% url 'op_detail' op.id %}">{{ op.number }}</a>
+              {% endfor %}
+            </span>
+          {% else %}
+            Ninguna
+          {% endif %}
+        </div>
+
+      </div>
+
+      <div class="hstack">
+        <a class="btn btn-ghost" href="{% url 'cc_list' %}">← Volver</a>
       </div>
     </div>
+  </div>
 
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <a class="btn" href="{% url 'cc_list' %}">← Volver</a>
+  <!-- 2) PRODUCTOS -->
+  <div class="card">
+    <div class="hstack between">
+      <h3 class="m0">Productos</h3>
+
+      {% if not cc_bloqueado %}
+        <a class="btn" href="{% url 'cc_add_item' cc.pk %}">➕ Agregar / Editar productos</a>
+      {% else %}
+        <span class="muted">🔒 Agregar/editar bloqueado</span>
+      {% endif %}
     </div>
-  </div>
-</div>
 
-
-<!-- 2) PRODUCTOS -->
-<div class="card" style="margin-top:14px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-    <h3 style="margin:0;">Productos</h3>
-
-    {% if not cc_bloqueado %}
-      <a class="btn" href="{% url 'cc_add_item' cc.pk %}">➕ Agregar / Editar productos</a>
-    {% else %}
-      <span class="muted">🔒 Agregar/editar bloqueado</span>
-    {% endif %}
-  </div>
-
-  <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
-    <thead>
-      <tr>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Producto</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Unidad</th>
-        <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">Cantidad</th>
-        <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">Acción</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for it in items %}
-        <tr>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ it.producto.nombre }}</td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ it.unidad }}</td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">{{ it.cantidad|floatformat:2 }}</td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">
-            {% if not cc_bloqueado %}
-              <a href="{% url 'cc_edit_item' cc.pk it.id %}">✏️</a>
-              &nbsp;
-              <a href="{% url 'cc_delete_item' cc.pk it.id %}">🗑️</a>
-            {% else %}
-              <span class="muted">—</span>
-            {% endif %}
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="4" style="padding:8px;">Sin productos.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
-
-<!-- 3) PROVEEDORES -->
-<div class="card" style="margin-top:14px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-    <h3 style="margin:0;">Proveedores</h3>
-
-    {% if not cc_bloqueado %}
-      <a class="btn" href="{% url 'cc_add_supplier' cc.pk %}">➕ Agregar / Editar proveedores</a>
-    {% else %}
-      <span class="muted">🔒 Agregar/editar bloqueado</span>
-    {% endif %}
-  </div>
-
-  <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
-    <thead>
-      <tr>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Proveedor</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Detalle / Motivo</th>
-        <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for ps in proveedores %}
-        <tr>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            {{ ps.proveedor.nombre_empresa }}
-          </td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            {{ ps.detalle|default:"-" }}
-          </td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right; white-space:nowrap;">
-            {# ✅ Editar el proveedor (tabla maestra) #}
-            <a title="Editar proveedor" href="{% url 'provider_edit' ps.proveedor.id %}?next={{ request.path }}">🏢✏️</a>
-
-            {% if not cc_bloqueado %}
-              &nbsp;|&nbsp;
-              {# Editar/Eliminar proveedor dentro del cuadro (detalle/motivo) #}
-              <a title="Editar proveedor (en el cuadro)" href="{% url 'cc_edit_supplier' cc.pk ps.id %}">✏️</a>
-              &nbsp;
-              <a title="Quitar del cuadro" href="{% url 'cc_delete_supplier' cc.pk ps.id %}">🗑️</a>
-            {% endif %}
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="3" style="padding:8px;">Sin proveedores.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
-
-<!-- 4) PRECIOS Y TOTALES -->
-<div class="card" style="margin-top:14px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-    <h3 style="margin:0;">Precios y Totales</h3>
-
-    {% if not cc_bloqueado %}
-      <a class="btn" href="{% url 'cc_prices' cc.pk %}">💲 Cargar / Editar matriz</a>
-    {% else %}
-      <a class="btn" href="{% url 'cc_prices' cc.pk %}">👁️ Ver matriz</a>
-    {% endif %}
-  </div>
-
-  <div class="muted" style="margin-top:8px;">
-    Nota: aquí se muestra el PU por proveedor. Los totales por proveedor se calculan con los precios cargados.
-  </div>
-
-  <div style="overflow:auto; margin-top:12px;">
-    <table style="width:100%; min-width:900px; border-collapse: collapse;">
+    <table class="table table-fixed" style="margin-top:12px;">
       <thead>
         <tr>
-          <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Producto</th>
-          <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">Cantidad</th>
-          {% for ps in proveedores %}
-            <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">
-              {{ ps.proveedor.nombre_empresa }}
-            </th>
-          {% endfor %}
+          <th class="w-55">Producto</th>
+          <th class="w-20">Unidad</th>
+          <th class="w-15 text-right">Cantidad</th>
+          <th class="w-10 text-right">Acción</th>
         </tr>
       </thead>
-
       <tbody>
         {% for it in items %}
           <tr>
-            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-              {{ it.producto.nombre }}
+            <td>{{ it.producto.nombre }}</td>
+            <td>{{ it.unidad }}</td>
+            <td class="text-right">{{ it.cantidad|floatformat:2 }}</td>
+            <td class="text-right">
+              {% if not cc_bloqueado %}
+                <a href="{% url 'cc_edit_item' cc.pk it.id %}">✏️</a>
+                &nbsp;
+                <a href="{% url 'cc_delete_item' cc.pk it.id %}">🗑️</a>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
             </td>
-
-            <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">
-              {{ it.cantidad|floatformat:2 }} {{ it.unidad }}
-            </td>
-
-            {% for ps in proveedores %}
-              {% with prov_prices=precios|get_item:ps.proveedor_id %}
-                {% with pu=prov_prices|get_item:it.producto_id %}
-                  <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">
-                    {% if pu %}
-                      <div class="muted" style="font-size:12px;">PU: {{ pu|floatformat:2 }}</div>
-                      <div style="font-weight:600; font-size:12px;">
-                        ({{ it.cantidad|floatformat:2 }} × {{ pu|floatformat:2 }})
-                      </div>
-                    {% else %}
-                      —
-                    {% endif %}
-                  </td>
-                {% endwith %}
-              {% endwith %}
-            {% endfor %}
           </tr>
         {% empty %}
-          <tr><td colspan="{{ proveedores|length|add:'2' }}" style="padding:8px;">Sin datos.</td></tr>
+          <tr><td colspan="4">Sin productos.</td></tr>
         {% endfor %}
-
-        <!-- Totales por proveedor -->
-        <tr>
-          <td colspan="2" style="padding:10px 8px; text-align:right; font-weight:bold; border-top:2px solid #e5e7eb;">
-            Total por proveedor
-          </td>
-          {% for ps in proveedores %}
-            <td style="padding:10px 8px; text-align:right; font-weight:bold; border-top:2px solid #e5e7eb;">
-              {% with key=ps.proveedor_id|stringformat:"s" %}
-                {{ totales_por_proveedor|get_item:key|floatformat:2 }}
-              {% endwith %}
-            </td>
-          {% endfor %}
-        </tr>
-
-        <!-- Total general -->
-        <tr>
-          <td colspan="{{ proveedores|length|add:'2' }}" style="padding:10px 8px; text-align:right; font-weight:bold;">
-            Total general: {{ total_general|floatformat:2 }}
-          </td>
-        </tr>
       </tbody>
     </table>
   </div>
-</div>
 
+  <!-- 3) PROVEEDORES -->
+  <div class="card">
+    <div class="hstack between">
+      <h3 class="m0">Proveedores</h3>
 
-<!-- 5) PROVEEDOR SELECCIONADO - MOTIVO -->
-<div class="card" style="margin-top:14px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-    <h3 style="margin:0;">Proveedor seleccionado - Motivo</h3>
-
-    {% if not cc_bloqueado %}
-      <a class="btn" href="{% url 'cc_select_supplier' cc.pk %}">✅ Seleccionar proveedor</a>
-    {% else %}
-      <span class="muted">🔒 Selección bloqueada</span>
-    {% endif %}
-  </div>
-
-  <div style="margin-top:10px;">
-    {% if cc.proveedor_seleccionado %}
-      <p style="margin:6px 0;"><b>Proveedor:</b> {{ cc.proveedor_seleccionado.proveedor.nombre_empresa }}</p>
-      <p style="margin:6px 0;"><b>Motivo:</b> {{ cc.motivo_seleccion|default:"-" }}</p>
-    {% else %}
-      <p style="margin:6px 0;">No se ha seleccionado proveedor.</p>
-    {% endif %}
-  </div>
-</div>
-
-
-<!-- 6) REGISTRO -->
-<div class="card" style="margin-top:14px;">
-  <h3 style="margin-top:0;">Registro</h3>
-
-  <p style="margin:6px 0;">
-    <b>Creado por:</b> {{ cc.creado_por.get_full_name|default:cc.creado_por.username }}
-    {% if cc.creado_en %} ({{ cc.creado_en|date:"d/m/Y H:i" }}){% endif %}
-  </p>
-
-  <p style="margin:6px 0;">
-    <b>Revisado por:</b>
-    {% if cc.revisado_por %}
-      {{ cc.revisado_por.get_full_name|default:cc.revisado_por.username }}
-      {% if cc.revisado_en %} ({{ cc.revisado_en|date:"d/m/Y H:i" }}){% endif %}
-    {% else %}
-      —
-    {% endif %}
-  </p>
-
-  <p style="margin:6px 0;">
-    <b>Aprobado por:</b>
-    {% if cc.aprobado_por %}
-      {{ cc.aprobado_por.get_full_name|default:cc.aprobado_por.username }}
-      {% if cc.aprobado_en %} ({{ cc.aprobado_en|date:"d/m/Y H:i" }}){% endif %}
-    {% else %}
-      —
-    {% endif %}
-  </p>
-</div>
-
-<!-- 7) SELECCIÓN Y FLUJO -->
-<div class="card" style="margin-top:14px;">
-  <h3 style="margin-top:0;">Selección y flujo</h3>
-
-  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-
-    {% if cc.estado == "BORRADOR" %}
-      <a class="btn" href="{% url 'cc_send_review' cc.pk %}">📤 Enviar a revisión</a>
-    {% elif cc.estado == "EN_REVISION" %}
-      {% if is_reviewer %}
-        <a class="btn" href="{% url 'cc_mark_reviewed' cc.pk %}">✅ Marcar como revisado</a>
-        <a class="btn" href="{% url 'cc_back_to_draft' cc.pk %}">↩️ Devolver a borrador</a>
+      {% if not cc_bloqueado %}
+        <a class="btn" href="{% url 'cc_add_supplier' cc.pk %}">➕ Agregar / Editar proveedores</a>
       {% else %}
-        <span class="muted">⏳ Pendiente de revisión.</span>
+        <span class="muted">🔒 Agregar/editar bloqueado</span>
       {% endif %}
-    {% elif cc.estado == "REVISADO" %}
-      {% if is_approver %}
-        <a class="btn" href="{% url 'cc_approve_final' cc.pk %}">✅ Aprobar</a>
-        <a class="btn" href="{% url 'cc_back_to_review' cc.pk %}">↩️ Devolver a revisión</a>
-      {% else %}
-        <span class="muted">⏳ Pendiente de aprobación.</span>
-      {% endif %}
-    {% elif cc.estado == "APROBADO" %}
-      <span class="muted">✅ Este cuadro ya está aprobado.</span>
-    {% endif %}
+    </div>
 
-    <a class="btn" href="{% url 'cc_generate_ops' cc.pk %}">🧾 Generar órdenes de pago</a>
+    <table class="table table-fixed" style="margin-top:12px;">
+      <thead>
+        <tr>
+          <tr>
+            <th class="w-55">Proveedor</th>
+            <th class="w-35">Detalle / Motivo</th>
+            <th class="w-10 text-right nowrap">Acciones</th>
+          </tr>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ps in proveedores %}
+          <tr>
+            <td>{{ ps.proveedor.nombre_empresa }}</td>
+            <td>{{ ps.detalle|default:"-" }}</td>
+            <td class="text-right nowrap">
+              <a title="Editar proveedor" href="{% url 'provider_edit' ps.proveedor.id %}?next={{ request.path }}">🏢✏️</a>
 
-    {% url 'cc_print' cc.pk as cc_print_url %}
-    {% if cc_print_url %}
-      <a class="btn" href="{{ cc_print_url }}" target="_blank">🖨️ Imprimir</a>
-    {% endif %}
+              {% if not cc_bloqueado %}
+                &nbsp;|&nbsp;
+                <a title="Editar proveedor (en el cuadro)" href="{% url 'cc_edit_supplier' cc.pk ps.id %}">✏️</a>
+                &nbsp;
+                <a title="Quitar del cuadro" href="{% url 'cc_delete_supplier' cc.pk ps.id %}">🗑️</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3">Sin proveedores.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 
-  <div style="margin-top:12px;">
-    <b>Órdenes creadas:</b>
-    {% if ordenes %}
-      {% for op in ordenes %}
-        <a href="{% url 'op_detail' op.id %}">{{ op.number }}</a>{% if not forloop.last %}, {% endif %}
-      {% endfor %}
-    {% else %}
-      Ninguna
-    {% endif %}
+  <!-- 4) PRECIOS Y TOTALES -->
+  <div class="card">
+    <div class="hstack between">
+      <h3 class="m0">Precios y Totales</h3>
+
+      {% if not cc_bloqueado %}
+        <a class="btn" href="{% url 'cc_prices' cc.pk %}">💲 Cargar / Editar matriz</a>
+      {% else %}
+        <a class="btn btn-ghost" href="{% url 'cc_prices' cc.pk %}">👁️ Ver matriz</a>
+      {% endif %}
+    </div>
+    <div class="table-scroll mt-md">
+      <table class="table minw-900">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th class="text-right">Cantidad</th>
+            {% for ps in proveedores %}
+              <th class="text-right">{{ ps.proveedor.nombre_empresa }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for it in items %}
+            <tr>
+              <td>{{ it.producto.nombre }}</td>
+              <td class="text-right">{{ it.cantidad|floatformat:2 }} {{ it.unidad }}</td>
+
+              {% for ps in proveedores %}
+                {% with prov_prices=precios|get_item:ps.proveedor_id %}
+                  {% with pu=prov_prices|get_item:it.producto_id %}
+                    <td class="text-right">
+                      {% if pu %}
+                        <div class="muted" style="font-size:12px;">PU: {{ pu|floatformat:2 }}</div>
+                        <div style="font-weight:600; font-size:12px;">
+                          ({{ it.cantidad|floatformat:2 }} × {{ pu|floatformat:2 }})
+                        </div>
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                  {% endwith %}
+                {% endwith %}
+              {% endfor %}
+            </tr>
+          {% empty %}
+            <tr><td colspan="{{ proveedores|length|add:'2' }}">Sin datos.</td></tr>
+          {% endfor %}
+
+          <tr>
+            <td colspan="2" class="text-right" style="border-top:2px solid var(--line);"><b>Total por proveedor</b></td>
+            {% for ps in proveedores %}
+              <td class="text-right" style="border-top:2px solid var(--line);">
+                {% with key=ps.proveedor_id|stringformat:"s" %}
+                  <b>{{ totales_por_proveedor|get_item:key|floatformat:2 }}</b>
+                {% endwith %}
+              </td>
+            {% endfor %}
+          </tr>
+
+          <tr>
+            <td colspan="{{ proveedores|length|add:'2' }}" class="text-right"><b>Total general: {{ total_general|floatformat:2 }}</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5) PROVEEDOR SELECCIONADO - MOTIVO -->
+  <div class="card">
+    <div class="hstack between">
+      <h3 class="m0">Proveedor seleccionado - Motivo</h3>
+
+      {% if not cc_bloqueado %}
+        <a class="btn" href="{% url 'cc_select_supplier' cc.pk %}">✅ Seleccionar proveedor</a>
+      {% else %}
+        <span class="muted">🔒 Selección bloqueada</span>
+      {% endif %}
+    </div>
+
+    <div class="mt-md">
+      {% if cc.proveedor_seleccionado %}
+        <p class="kv"><b>Proveedor:</b> {{ cc.proveedor_seleccionado.proveedor.nombre_empresa }}</p>
+        <p class="kv"><b>Motivo:</b> {{ cc.motivo_seleccion|default:"-" }}</p>
+      {% else %}
+        <p>No se ha seleccionado proveedor.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 6) REGISTRO -->
+  <div class="card kv">
+    <h3 class="m0">Registro</h3>
+
+    <p>
+      <b>Creado por:</b> {{ cc.creado_por.get_full_name|default:cc.creado_por.username }}
+      {% if cc.creado_en %} ({{ cc.creado_en|date:"d/m/Y H:i" }}){% endif %}
+    </p>
+
+    <p>
+      <b>Revisado por:</b>
+      {% if cc.revisado_por %}
+        {{ cc.revisado_por.get_full_name|default:cc.revisado_por.username }}
+        {% if cc.revisado_en %} ({{ cc.revisado_en|date:"d/m/Y H:i" }}){% endif %}
+      {% else %}
+        —
+      {% endif %}
+    </p>
+
+    <p>
+      <b>Aprobado por:</b>
+      {% if cc.aprobado_por %}
+        {{ cc.aprobado_por.get_full_name|default:cc.aprobado_por.username }}
+        {% if cc.aprobado_en %} ({{ cc.aprobado_en|date:"d/m/Y H:i" }}){% endif %}
+      {% else %}
+        —
+      {% endif %}
+    </p>
+  </div>
+
+  <!-- 7) SELECCIÓN Y FLUJO -->
+  <div class="card">
+    <h3 class="m0">Selección y flujo</h3>
+
+    <div class="hstack mt-md">
+      {% if cc.estado == "BORRADOR" %}
+        <a class="btn btn-primary" href="{% url 'cc_send_review' cc.pk %}">📤 Enviar a revisión</a>
+      {% elif cc.estado == "EN_REVISION" %}
+        {% if is_reviewer %}
+          <a class="btn btn-primary" href="{% url 'cc_mark_reviewed' cc.pk %}">✅ Marcar como revisado</a>
+          <a class="btn btn-ghost" href="{% url 'cc_back_to_draft' cc.pk %}">↩️ Devolver a borrador</a>
+        {% else %}
+          <span class="muted">⏳ Pendiente de revisión.</span>
+        {% endif %}
+      {% elif cc.estado == "REVISADO" %}
+        {% if is_approver %}
+          <a class="btn btn-primary" href="{% url 'cc_approve_final' cc.pk %}">✅ Aprobar</a>
+          <a class="btn btn-ghost" href="{% url 'cc_back_to_review' cc.pk %}">↩️ Devolver a revisión</a>
+        {% else %}
+          <span class="muted">⏳ Pendiente de aprobación.</span>
+        {% endif %}
+      {% elif cc.estado == "APROBADO" %}
+        <span class="muted">✅ Este cuadro ya está aprobado.</span>
+      {% endif %}
+
+      <a class="btn" href="{% url 'cc_generate_ops' cc.pk %}">🧾 Generar órdenes de pago</a>
+
+      {% url 'cc_print' cc.pk as cc_print_url %}
+      {% if cc_print_url %}
+        <a class="btn btn-ghost" href="{{ cc_print_url }}" target="_blank">🖨️ Imprimir</a>
+      {% endif %}
+    </div>
+
+    <div class="mt-md">
+      <b>Órdenes creadas:</b>
+      {% if ordenes %}
+        {% for op in ordenes %}
+          <a href="{% url 'op_detail' op.id %}">{{ op.number }}</a>{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+      {% else %}
+        Ninguna
+      {% endif %}
+    </div>
   </div>
 
 </div>
