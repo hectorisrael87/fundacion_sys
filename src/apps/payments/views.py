@@ -141,11 +141,13 @@ def op_detail(request, pk: int):
         complemento = op.complementos.order_by("-creado_en").first()
 
     puede_crear_complemento = (
-        op.es_parcial
+        (request.user.is_superuser or op.creado_por_id == request.user.id)
+        and op.es_parcial
         and (restante is not None and restante > 0)
         and complemento is None
         and op.estado == PaymentOrder.Status.APROBADO
     )
+
 
     return render(
         request,

@@ -284,7 +284,10 @@
         <span class="muted">✅ Este cuadro ya está aprobado.</span>
       {% endif %}
 
-      <a class="btn" href="{% url 'cc_generate_ops' cc.pk %}">🧾 Generar órdenes de pago</a>
+      {% if user.is_superuser or cc.creado_por_id == user.id %}
+        <a class="btn" href="{% url 'cc_generate_ops' cc.pk %}">🧾 Generar órdenes de pago</a>
+      {% endif %}
+
 
       {% url 'cc_print' cc.pk as cc_print_url %}
       {% if cc_print_url %}

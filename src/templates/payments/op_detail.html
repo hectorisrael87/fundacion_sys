@@ -101,7 +101,14 @@
             {{ form.cargo_de }}
             {{ form.cargo_de.errors }}
           {% else %}
-            <div class="control control-static">{{ op.cargo_de|default:"-" }}</div>
+            <div class="control control-static">
+              {% if op.cargo_de %}
+                {{ op.cargo_de }}
+              {% else %}
+                {{ op.creado_por.userprofile.cargo|default:"-" }}
+              {% endif %}
+            </div>
+
           {% endif %}
         </div>
 

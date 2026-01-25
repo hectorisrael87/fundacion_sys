@@ -587,7 +587,7 @@ def cc_generate_ops(request, pk):
                 para="Maria Teresa Vargas",
                 cargo_para="Directora Ejecutiva",
                 de=request.user.get_full_name() or request.user.username,
-                cargo_de=getattr(getattr(request.user, "profile", None), "cargo", "") or "",
+                cargo_de=getattr(getattr(request.user, "userprofile", None), "cargo", "") or "",
                 fecha_solicitud=timezone.localdate(),
                 proyecto="Uso Contable",
                 partida_contable="Uso Contable",
