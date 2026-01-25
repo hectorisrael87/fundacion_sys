@@ -3,28 +3,35 @@
 
 {% block content %}
 <div class="card">
-  <h2>Órdenes de Pago</h2>
+  <div class="hstack between items-start">
+    <div>
+      <h2 class="m0">Órdenes de Pago</h2>
+      <div class="muted mt-xs">Listado de órdenes de pago</div>
+    </div>
+  </div>
 
-  <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
+  <table class="table">
     <thead>
       <tr>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Número</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Descripción</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Para</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Cuadro</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Creador</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Fecha</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Estado</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Acciones</th>
+        <th>Número</th>
+        <th>Descripción</th>
+        <th>Para</th>
+        <th>Cuadro</th>
+        <th>Creador</th>
+        <th>Fecha</th>
+        <th>Estado</th>
+        <th class="nowrap">Acciones</th>
       </tr>
     </thead>
+
     <tbody>
       {% for op in ordenes %}
         <tr>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            <a href="{% url 'op_detail' op.pk %}">{{ op.number }}</a>
+          <td>
+            <b><a href="{% url 'op_detail' op.pk %}">{{ op.number }}</a></b>
           </td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+
+          <td>
             {% if op.items.all %}
               {% for it in op.items.all %}
                 {% if forloop.first %}
@@ -35,54 +42,53 @@
               —
             {% endif %}
           </td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            {{ op.proveedor.nombre_empresa|default:op.proveedor }}
-          </td>
 
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            {{ op.cuadro.number|default:op.cuadro }}
-          </td>
+          <td>{{ op.proveedor.nombre_empresa|default:op.proveedor }}</td>
+          <td>{{ op.cuadro.number|default:op.cuadro }}</td>
 
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            {{ op.creado_por.get_full_name|default:op.creado_por.username }}
-          </td>
+          <td>{{ op.creado_por.get_full_name|default:op.creado_por.username }}</td>
 
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            {{ op.creado_en|date:"d/m/Y" }}
-          </td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            {% if is_reviewer %}
-              {% if op.estado == "EN_REVISION" %}
-                Pendiente
-              {% else %}
-                {{ op.get_estado_display }}
-              {% endif %}
-            {% elif is_approver %}
-              {% if op.estado == "REVISADO" %}
-                Pendiente
-              {% else %}
-                {{ op.get_estado_display }}
-              {% endif %}
+          <td>{{ op.creado_en|date:"d/m/Y" }}</td>
+
+          <td>
+            {# Mantener regla: reviewer/approver ven "Pendiente" en vez de técnico #}
+            {% if is_reviewer and op.estado == "EN_REVISION" %}
+              <span class="badge badge-pending">● Pendiente</span>
+            {% elif is_approver and op.estado == "REVISADO" %}
+              <span class="badge badge-pending">● Pendiente</span>
+            {% elif op.estado == "BORRADOR" %}
+              <span class="badge badge-draft">📝 Borrador</span>
+            {% elif op.estado == "EN_REVISION" %}
+              <span class="badge badge-pending">● En revisión</span>
+            {% elif op.estado == "REVISADO" %}
+              <span class="badge badge-reviewed">✓ Revisado</span>
+            {% elif op.estado == "APROBADO" %}
+              <span class="badge badge-approved">✓ Aprobado</span>
             {% else %}
-              {{ op.get_estado_display }}
+              <span class="badge badge-draft">{{ op.get_estado_display }}</span>
             {% endif %}
           </td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            <a href="{% url 'op_detail' op.pk %}" title="Ver">👁️</a>
+
+          <td class="nowrap">
+            <a class="icon-action" href="{% url 'op_detail' op.pk %}" title="Ver">👁️</a>
 
             {% if user.is_superuser or op.creado_por_id == user.id %}
               {% if user.is_superuser or op.estado == "BORRADOR" %}
                 <form method="post" action="{% url 'op_delete' op.pk %}" style="display:inline;">
                   {% csrf_token %}
-                  <button type="submit" title="Eliminar" style="border:none; background:none; cursor:pointer; padding:0 0 0 8px;"
-                          onclick="return confirm('¿Eliminar la OP {{ op.number }}?');">🗑️</button>
+                  <button
+                    type="submit"
+                    class="icon-btn"
+                    title="Eliminar"
+                    onclick="return confirm('¿Eliminar la OP {{ op.number }}?');"
+                  >🗑️</button>
                 </form>
               {% endif %}
             {% endif %}
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="8" style="padding:8px;">No hay órdenes de pago.</td></tr>
+        <tr><td colspan="8">No hay órdenes de pago.</td></tr>
       {% endfor %}
     </tbody>
   </table>
