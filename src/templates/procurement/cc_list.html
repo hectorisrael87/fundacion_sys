@@ -4,46 +4,71 @@
 {% block content %}
 <div class="card">
   <div style="display:flex; justify-content:space-between; align-items:center;">
-    <h2>Cuadros comparativos</h2>
-    <a href="{% url 'cc_create' %}">+ Nuevo cuadro</a>
+    <div>
+      <h2 style="margin:0;">Cuadros Comparativos</h2>
+      <div class="muted" style="margin-top:4px;">Gestiona y revisa los cuadros comparativos</div>
+    </div>
+
+    <a class="btn btn-primary" href="{% url 'cc_create' %}">＋ Nuevo Cuadro Comparativo</a>
   </div>
 
   <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
     <thead>
       <tr>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Número</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Item cotizado</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Proyecto</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Estado</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Fecha</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Creado por</th>
-        <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Acciones</th>
+        <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">N°</th>
+        <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">ARTÍCULO</th>
+        <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">PROYECTO</th>
+        <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">FECHA</th>
+        <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">ESTADO</th>
+        <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">CREADOR</th>
+        <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">ACCIONES</th>
       </tr>
     </thead>
+
     <tbody>
       {% for c in cuadros %}
         <tr>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-            <a href="{% url 'cc_detail' c.pk %}">{{ c.number }}</a>
+          <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0;">
+            <b>{{ c.number }}</b>
           </td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.item_cotizado }}</td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.proyecto }}</td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+
+          <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0;">
+            {{ c.item_cotizado }}
+          </td>
+
+          <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0;">
+            {{ c.proyecto }}
+          </td>
+
+          <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0;">
+            {{ c.creado_en|date:"d/m/Y" }}
+          </td>
+
+          <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0;">
+            {# Mantiene regla: reviewer/approver ven "Pendiente" en vez de estado técnico #}
             {% if is_reviewer and c.estado == "EN_REVISION" %}
-              Pendiente
+              <span class="badge badge-pending">● Pendiente</span>
             {% elif is_approver and c.estado == "REVISADO" %}
-              Pendiente
+              <span class="badge badge-pending">● Pendiente</span>
+            {% elif c.estado == "BORRADOR" %}
+              <span class="badge badge-draft">📝 Borrador</span>
+            {% elif c.estado == "EN_REVISION" %}
+              <span class="badge badge-pending">● En revisión</span>
+            {% elif c.estado == "REVISADO" %}
+              <span class="badge badge-reviewed">✓ Revisado</span>
+            {% elif c.estado == "APROBADO" %}
+              <span class="badge badge-approved">✓ Aprobado</span>
             {% else %}
-              {{ c.get_estado_display }}
+              <span class="badge badge-draft">{{ c.get_estado_display }}</span>
             {% endif %}
           </td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ c.creado_en|date:"d/m/Y H:i" }}</td>
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+
+          <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0;">
             {{ c.creado_por.get_full_name|default:c.creado_por.username }}
           </td>
 
-          <td style="padding:8px; border-bottom:1px solid #f0f0f0; white-space:nowrap;">
-            <a title="Ver" href="{% url 'cc_detail' c.pk %}">👁️</a>
+          <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0; white-space:nowrap;">
+            <a class="icon-action" title="Ver" href="{% url 'cc_detail' c.pk %}">👁️</a>
 
             {% if user.is_superuser or c.creado_por_id == user.id %}
               {% if c.estado == "BORRADOR" %}
@@ -51,10 +76,9 @@
                   {% csrf_token %}
                   <button
                     type="submit"
-                    class="linkbtn"
+                    class="icon-btn"
                     title="Eliminar"
                     onclick="return confirm('¿Eliminar el cuadro {{ c.number }}?');"
-                    style="padding:0 4px;"
                   >🗑️</button>
                 </form>
               {% endif %}
@@ -62,7 +86,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="7" style="padding:8px;">No hay cuadros todavía.</td></tr>
+        <tr><td colspan="7" style="padding:10px 8px;">No hay cuadros todavía.</td></tr>
       {% endfor %}
     </tbody>
   </table>

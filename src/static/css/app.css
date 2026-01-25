@@ -426,3 +426,80 @@ body{
 
 .nowrap{ white-space:nowrap; }
 .text-right{ text-align:right; }
+
+/* ==== CC List: Status pills & Action icons ==== */
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 12px;
+  border-radius:999px;
+  font-weight:800;
+  font-size:12px;
+  line-height:1;
+  border:1px solid transparent;
+  white-space:nowrap;
+}
+
+.badge-draft{
+  background:#f1f5f9;
+  border-color:#e2e8f0;
+  color:#334155;
+}
+
+.badge-pending{
+  background:#fef3c7;
+  border-color:#fcd34d;
+  color:#92400e;
+}
+
+.badge-approved{
+  background:#dcfce7;
+  border-color:#86efac;
+  color:#166534;
+}
+
+.badge-reviewed{
+  background:#e0f2fe;
+  border-color:#7dd3fc;
+  color:#075985;
+}
+
+.icon-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  text-decoration:none;   /* ✅ sin subrayado */
+  color:var(--text);
+}
+.icon-action:hover{
+  background:#f8fafc;
+}
+
+.icon-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  padding:0;
+}
+.icon-btn:hover{
+  background:#f8fafc;
+}
+
+/* opcional: estilo de botón primario para "Nuevo cuadro" */
+.btn-primary{
+  background: var(--accent);
+  border-color: var(--accent);
+  color:#fff;
+}
+.btn-primary:hover{ filter: brightness(.98); }
