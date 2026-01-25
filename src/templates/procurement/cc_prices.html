@@ -2,19 +2,24 @@
 {% block title %}{{ cc.number }} - Precios{% endblock %}
 
 {% block content %}
+
 <div class="modal">
   <a class="modal-backdrop" href="{% url 'cc_detail' cc.pk %}" aria-label="Cerrar"></a>
 
-  <div class="modal-panel">
+  <div class="modal-panel" style="width: min(980px, 100%);">
     <div class="card">
       <div class="modal-header">
         <div>
           <h2 class="m0">{{ cc.number }} – Matriz de precios</h2>
-          <div class="muted mt-xs">Ingresa el <b>precio unitario</b> por producto y proveedor.</div>
+          <div class="muted mt-xs">
+            Ingresa el <b>precio unitario</b> por producto y proveedor (vista vertical).
+          </div>
+
           {% if cc_bloqueado %}
             <div class="muted mt-sm">🔒 El cuadro está aprobado: la matriz está en modo lectura.</div>
           {% endif %}
         </div>
+
         <a class="btn btn-ghost btn-sm" href="{% url 'cc_detail' cc.pk %}">✕</a>
       </div>
 
@@ -34,43 +39,57 @@
         <form method="post" class="mt-md">
           {% csrf_token %}
 
-          <div class="table-scroll">
-            <table class="table minw-900">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th>Unidad</th>
-                  <th class="text-right">Cant.</th>
+          <div class="modal-body">
+            {% for ps in proveedores %}
+              <div class="card mt" style="border:1px solid var(--line);">
+                <div class="hstack between">
+                  <div>
+                    <b>{{ ps.proveedor.nombre_empresa }}</b>
+                    {% if ps.detalle %}
+                      <div class="muted mt-xs">{{ ps.detalle }}</div>
+                    {% endif %}
+                  </div>
+                  <span class="muted">Proveedor</span>
+                </div>
 
-                  {% for ps in proveedores %}
-                    <th class="text-right">{{ ps.proveedor.nombre_empresa }}</th>
-                  {% endfor %}
-                </tr>
-              </thead>
+                <div class="table-scroll mt-md">
+                  <table class="table" style="margin-top:0;">
+                    <thead>
+                      <tr>
+                        <th style="min-width:240px;">Producto</th>
+                        <th style="min-width:90px;">Unidad</th>
+                        <th class="text-right" style="min-width:90px;">Cant.</th>
+                        <th class="text-right" style="min-width:170px;">Precio unitario</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for fila in matriz %}
+                        <tr>
+                          <td>{{ fila.item.producto.nombre }}</td>
+                          <td>{{ fila.item.unidad }}</td>
+                          <td class="text-right">{{ fila.item.cantidad }}</td>
 
-              <tbody>
-                {% for fila in matriz %}
-                  <tr>
-                    <td>{{ fila.item.producto.nombre }}</td>
-                    <td>{{ fila.item.unidad }}</td>
-                    <td class="text-right">{{ fila.item.cantidad }}</td>
-
-                    {% for c in fila.celdas %}
-                      <td class="text-right">
-                        <input
-                          class="control control-cell"
-                          type="text"
-                          inputmode="decimal"
-                          name="precio_{{ c.proveedor_id }}_{{ c.producto_id }}"
-                          value="{{ c.precio_unit|floatformat:2 }}"
-                          {% if cc_bloqueado %}disabled{% endif %}
-                        />
-                      </td>
-                    {% endfor %}
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+                          <td class="text-right">
+                            {% for c in fila.celdas %}
+                              {% if c.proveedor_id == ps.proveedor_id %}
+                                <input
+                                  class="control control-cell"
+                                  type="text"
+                                  inputmode="decimal"
+                                  name="precio_{{ c.proveedor_id }}_{{ c.producto_id }}"
+                                  value="{{ c.precio_unit|floatformat:2 }}"
+                                  {% if cc_bloqueado %}disabled{% endif %}
+                                />
+                              {% endif %}
+                            {% endfor %}
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {% endfor %}
           </div>
 
           <div class="modal-actions">
@@ -80,8 +99,10 @@
             <a class="btn btn-ghost" href="{% url 'cc_detail' cc.pk %}">Volver</a>
           </div>
         </form>
+
       {% endif %}
     </div>
   </div>
 </div>
+
 {% endblock %}

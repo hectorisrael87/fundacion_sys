@@ -608,9 +608,10 @@ body{
   inset:0;
   z-index:50;
   display:flex;
-  align-items:flex-start;
   justify-content:center;
+  align-items:center;
   padding:24px;
+  overflow:auto; /* si el viewport es chico */
 }
 
 .modal-backdrop{
@@ -621,8 +622,10 @@ body{
 
 .modal-panel{
   position:relative;
-  width: min(760px, 100%);
-  margin-top: 36px;
+  width: min(980px, 100%);
+  max-height: calc(100vh - 48px);  /* altura limitada */
+  display:flex;
+  flex-direction:column;
 }
 
 .modal-header{
@@ -638,10 +641,16 @@ body{
   flex-wrap:wrap;
   margin-top:12px;
 }
-
+.modal-body{
+  overflow:auto;                 /* ✅ scroll interno */
+  padding-top:14px;
+  max-height: calc(100vh - 220px); /* deja espacio para header + botones */
+}
 /* inputs compactos para matriz de precios */
 .control-cell{
   width:120px;
   text-align:right;
   font-variant-numeric: tabular-nums;
 }
+
+.control-cell{ width:160px; }
