@@ -12,6 +12,13 @@
     <a class="btn btn-primary" href="{% url 'cc_create' %}">＋ Nuevo Cuadro Comparativo</a>
   </div>
 
+  <div class="tabs">
+    <a class="tab {% if status == 'all' %}active{% endif %}" href="{% url 'cc_list' %}">Todos</a>
+    <a class="tab {% if status == 'draft' %}active{% endif %}" href="{% url 'cc_list' %}?status=draft">Borrador</a>
+    <a class="tab {% if status == 'pending' %}active{% endif %}" href="{% url 'cc_list' %}?status=pending">Pendiente</a>
+    <a class="tab {% if status == 'approved' %}active{% endif %}" href="{% url 'cc_list' %}?status=approved">Aprobado</a>
+  </div>
+
   <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
     <thead>
       <tr>
