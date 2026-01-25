@@ -26,11 +26,14 @@
           <div><b>Proyecto:</b> {{ cc.proyecto }}</div>
           <div><b>Expresado en:</b> {{ cc.expresado_en }}</div>
 
-          {% if not cc_bloqueado and (user.is_superuser or is_reviewer or cc.creado_por_id == user.id) %}
-            <div class="mt-sm">
-              <a class="btn btn-ghost btn-sm" href="{% url 'cc_edit_header' cc.pk %}">✏️ Editar cabecera</a>
-            </div>
+          {% if not cc_bloqueado %}
+            {% if user.is_superuser or is_reviewer or cc.creado_por_id == user.id %}
+              <div class="mt-sm">
+                <a class="btn btn-ghost btn-sm" href="{% url 'cc_edit_header' cc.pk %}">✏️ Editar cabecera</a>
+              </div>
+            {% endif %}
           {% endif %}
+          
         </div>
 
         <div style="margin-top:12px;">
