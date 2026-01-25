@@ -177,9 +177,11 @@ def op_detail(request, pk: int):
 def op_send_review(request, pk: int):
     op = get_object_or_404(PaymentOrder, pk=pk)
 
-    # Solo creador (o superuser) puede enviar a revisión
+   # Solo creador (o superuser) puede enviar a revisión
     if not (request.user.is_superuser or op.creado_por_id == request.user.id):
-        return HttpResponseForbidden("No tienes permiso para enviar esta OP a revisión.")
+        messages.error(request, "No tienes permiso para enviar esta OP a revisión.")
+        return redirect("op_detail", pk=pk)
+
 
     # No puede moverse si ya está aprobada
     if op.estado == PaymentOrder.Status.APROBADO:
