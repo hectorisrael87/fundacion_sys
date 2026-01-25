@@ -2,32 +2,52 @@
 {% block title %}Nuevo cuadro{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 700px;">
-  <h2>Nuevo cuadro comparativo</h2>
+<div class="modal">
+  <a class="modal-backdrop" href="{% url 'cc_list' %}" aria-label="Cerrar"></a>
 
-  <form method="post">
-    {% csrf_token %}
+  <div class="modal-panel">
+    <div class="card">
+      <div class="modal-header">
+        <div>
+          <h2 class="m0">Nuevo cuadro comparativo</h2>
+          <div class="muted mt-xs">Completa los datos para crear el cuadro.</div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cc_list' %}">✕</a>
+      </div>
 
-    <div>
-      <label>Item cotizado</label><br>
-      {{ form.item_cotizado }}
+      <form method="post" class="mt-md">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="form-grid">
+          <div class="field">
+            <div class="label">Item cotizado</div>
+            {{ form.item_cotizado }}
+            {% if form.item_cotizado.errors %}<div class="error">{{ form.item_cotizado.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <div class="label">Proyecto</div>
+            {{ form.proyecto }}
+            {% if form.proyecto.errors %}<div class="error">{{ form.proyecto.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <div class="label">Expresado en</div>
+            {{ form.expresado_en }}
+            {% if form.expresado_en.errors %}<div class="error">{{ form.expresado_en.errors }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit">💾 Guardar</button>
+          <a class="btn btn-ghost" href="{% url 'cc_list' %}">Cancelar</a>
+        </div>
+      </form>
     </div>
-    <br>
-
-    <div>
-      <label>Proyecto</label><br>
-      {{ form.proyecto }}
-    </div>
-    <br>
-
-    <div>
-      <label>Expresado en</label><br>
-      {{ form.expresado_en }}
-    </div>
-    <br>
-
-    <button type="submit">Guardar</button>
-    <a href="{% url 'cc_list' %}" style="margin-left:10px;">Cancelar</a>
-  </form>
+  </div>
 </div>
 {% endblock %}

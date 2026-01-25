@@ -120,14 +120,15 @@
             <td>{{ ps.proveedor.nombre_empresa }}</td>
             <td>{{ ps.detalle|default:"-" }}</td>
             <td class="text-right nowrap">
-              <a title="Editar proveedor" href="{% url 'provider_edit' ps.proveedor.id %}?next={{ request.path }}">🏢✏️</a>
-
+              
               {% if not cc_bloqueado %}
-                &nbsp;|&nbsp;
+                
                 <a title="Editar proveedor (en el cuadro)" href="{% url 'cc_edit_supplier' cc.pk ps.id %}">✏️</a>
                 &nbsp;
                 <a title="Quitar del cuadro" href="{% url 'cc_delete_supplier' cc.pk ps.id %}">🗑️</a>
               {% endif %}
+              &nbsp;|&nbsp;
+              <a title="Editar proveedor" href="{% url 'provider_edit' ps.proveedor.id %}?next={{ request.path }}">🏢</a>
             </td>
           </tr>
         {% empty %}

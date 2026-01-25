@@ -601,3 +601,47 @@ body{
   border-color:#cbd5f5;
   color:var(--accent);
 }
+
+/* ==== Modal (CSS-only “ventana modal”) ==== */
+.modal{
+  position:fixed;
+  inset:0;
+  z-index:50;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:24px;
+}
+
+.modal-backdrop{
+  position:absolute;
+  inset:0;
+  background: rgba(15,23,42,.45);
+}
+
+.modal-panel{
+  position:relative;
+  width: min(760px, 100%);
+  margin-top: 36px;
+}
+
+.modal-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.modal-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+
+/* inputs compactos para matriz de precios */
+.control-cell{
+  width:120px;
+  text-align:right;
+  font-variant-numeric: tabular-nums;
+}

@@ -2,14 +2,46 @@
 {% block title %}Seleccionar proveedor{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width:800px;">
-  <h2>{{ cc.number }} – Seleccionar proveedor</h2>
+<div class="modal">
+  <a class="modal-backdrop" href="{% url 'cc_detail' cc.pk %}" aria-label="Cerrar"></a>
 
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Guardar</button>
-    <a href="{% url 'cc_detail' cc.pk %}" style="margin-left:10px;">Cancelar</a>
-  </form>
+  <div class="modal-panel">
+    <div class="card">
+      <div class="modal-header">
+        <div>
+          <h2 class="m0">{{ cc.number }} – Seleccionar proveedor</h2>
+          <div class="muted mt-xs">Selecciona el proveedor final y registra el motivo.</div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cc_detail' cc.pk %}">✕</a>
+      </div>
+
+      <form method="post" class="mt-md">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="form-grid">
+          <div class="field">
+            <div class="label">Proveedor seleccionado</div>
+            {{ form.proveedor_seleccionado }}
+            {% if form.proveedor_seleccionado.errors %}<div class="error">{{ form.proveedor_seleccionado.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <div class="label">Motivo</div>
+            {{ form.motivo_seleccion }}
+            {% if form.motivo_seleccion.errors %}<div class="error">{{ form.motivo_seleccion.errors }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit">💾 Guardar</button>
+          <a class="btn btn-ghost" href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

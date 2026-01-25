@@ -2,20 +2,58 @@
 {% block title %}Agregar producto{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width:600px;">
-  <h3>{{ cc.number }} – Agregar producto</h3>
-  <p>
-  <a href="{% url 'product_create' %}?next={% url 'cc_add_item' cc.pk %}">
-    + Crear producto nuevo
-  </a>
-  </p>
+<div class="modal">
+  <a class="modal-backdrop" href="{% url 'cc_detail' cc.pk %}" aria-label="Cerrar"></a>
 
+  <div class="modal-panel">
+    <div class="card">
+      <div class="modal-header">
+        <div>
+          <h2 class="m0">{{ cc.number }} – Agregar producto</h2>
+          <div class="muted mt-xs">Agrega un producto al cuadro.</div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cc_detail' cc.pk %}">✕</a>
+      </div>
 
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Agregar</button>
-    <a href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
-  </form>
+      <div class="mt-md">
+        <a class="btn btn-ghost btn-sm" href="{% url 'product_create' %}?next={% url 'cc_add_item' cc.pk %}">
+          ➕ Crear producto nuevo
+        </a>
+      </div>
+
+      <form method="post" class="mt-md">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="form-grid">
+          <div class="field">
+            <div class="label">Producto</div>
+            {{ form.producto }}
+            {% if form.producto.errors %}<div class="error">{{ form.producto.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <div class="label">Unidad</div>
+            {{ form.unidad }}
+            {% if form.unidad.errors %}<div class="error">{{ form.unidad.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <div class="label">Cantidad</div>
+            {{ form.cantidad }}
+            {% if form.cantidad.errors %}<div class="error">{{ form.cantidad.errors }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit">➕ Agregar</button>
+          <a class="btn btn-ghost" href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

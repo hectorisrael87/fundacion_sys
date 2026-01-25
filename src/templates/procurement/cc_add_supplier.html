@@ -2,21 +2,52 @@
 {% block title %}Agregar proveedor{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width:600px;">
-  <h3>{{ cc.number }} – Agregar proveedor</h3>
+<div class="modal">
+  <a class="modal-backdrop" href="{% url 'cc_detail' cc.pk %}" aria-label="Cerrar"></a>
 
-  <p>
-  <a href="{% url 'provider_create' %}?next={% url 'cc_add_supplier' cc.pk %}">
-    + Crear proveedor nuevo
-  </a>
-</p>
+  <div class="modal-panel">
+    <div class="card">
+      <div class="modal-header">
+        <div>
+          <h2 class="m0">{{ cc.number }} – Agregar proveedor</h2>
+          <div class="muted mt-xs">Agrega un proveedor al cuadro.</div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cc_detail' cc.pk %}">✕</a>
+      </div>
 
+      <div class="mt-md">
+        <a class="btn btn-ghost btn-sm" href="{% url 'provider_create' %}?next={% url 'cc_add_supplier' cc.pk %}">
+          ➕ Crear proveedor nuevo
+        </a>
+      </div>
 
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Agregar</button>
-    <a href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
-  </form>
+      <form method="post" class="mt-md">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="form-grid">
+          <div class="field">
+            <div class="label">Proveedor</div>
+            {{ form.proveedor }}
+            {% if form.proveedor.errors %}<div class="error">{{ form.proveedor.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <div class="label">Detalle / Motivo</div>
+            {{ form.detalle }}
+            {% if form.detalle.errors %}<div class="error">{{ form.detalle.errors }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit">➕ Agregar</button>
+          <a class="btn btn-ghost" href="{% url 'cc_detail' cc.pk %}">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

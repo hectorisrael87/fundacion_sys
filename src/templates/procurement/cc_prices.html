@@ -2,66 +2,86 @@
 {% block title %}{{ cc.number }} - Precios{% endblock %}
 
 {% block content %}
-<div class="card">
-  <h2>{{ cc.number }} – Matriz de precios</h2>
-  <p>Ingrese el <b>precio unitario</b> por producto y proveedor.</p>
+<div class="modal">
+  <a class="modal-backdrop" href="{% url 'cc_detail' cc.pk %}" aria-label="Cerrar"></a>
 
-  {% if not items %}
-    <p><b>No hay productos.</b> Primero agregue productos.</p>
-    <a href="{% url 'cc_detail' cc.pk %}">Volver</a>
-  {% elif not proveedores %}
-    <p><b>No hay proveedores.</b> Primero agregue proveedores.</p>
-    <a href="{% url 'cc_detail' cc.pk %}">Volver</a>
-  {% else %}
+  <div class="modal-panel">
+    <div class="card">
+      <div class="modal-header">
+        <div>
+          <h2 class="m0">{{ cc.number }} – Matriz de precios</h2>
+          <div class="muted mt-xs">Ingresa el <b>precio unitario</b> por producto y proveedor.</div>
+          {% if cc_bloqueado %}
+            <div class="muted mt-sm">🔒 El cuadro está aprobado: la matriz está en modo lectura.</div>
+          {% endif %}
+        </div>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cc_detail' cc.pk %}">✕</a>
+      </div>
 
-  <form method="post">
-    {% csrf_token %}
+      {% if not items %}
+        <div class="mt-md">
+          <p><b>No hay productos.</b> Primero agrega productos.</p>
+          <a class="btn btn-ghost" href="{% url 'cc_detail' cc.pk %}">Volver</a>
+        </div>
 
-    <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
-      <thead>
-        <tr>
-          <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Producto</th>
-          <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Unidad</th>
-          <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">Cant.</th>
+      {% elif not proveedores %}
+        <div class="mt-md">
+          <p><b>No hay proveedores.</b> Primero agrega proveedores.</p>
+          <a class="btn btn-ghost" href="{% url 'cc_detail' cc.pk %}">Volver</a>
+        </div>
 
-          {% for ps in proveedores %}
-            <th style="text-align:right; padding:8px; border-bottom:1px solid #e5e7eb;">
-              {{ ps.proveedor.nombre_empresa }}
-            </th>
-          {% endfor %}
-        </tr>
-      </thead>
+      {% else %}
+        <form method="post" class="mt-md">
+          {% csrf_token %}
 
-      <tbody>
-        {% for fila in matriz %}
-          <tr>
-            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ fila.item.producto.nombre }}</td>
-            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{{ fila.item.unidad }}</td>
-            <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">{{ fila.item.cantidad }}</td>
+          <div class="table-scroll">
+            <table class="table minw-900">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Unidad</th>
+                  <th class="text-right">Cant.</th>
 
-            {% for c in fila.celdas %}
-              <td style="padding:8px; border-bottom:1px solid #f0f0f0; text-align:right;">
-                <input
-                    type="text"
-                    inputmode="decimal"
-                    name="precio_{{ c.proveedor_id }}_{{ c.producto_id }}"
-                    value="{{ c.precio_unit|floatformat:2 }}"
-                    style="width:120px; text-align:right;"
-                />
+                  {% for ps in proveedores %}
+                    <th class="text-right">{{ ps.proveedor.nombre_empresa }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
 
-              </td>
-            {% endfor %}
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+              <tbody>
+                {% for fila in matriz %}
+                  <tr>
+                    <td>{{ fila.item.producto.nombre }}</td>
+                    <td>{{ fila.item.unidad }}</td>
+                    <td class="text-right">{{ fila.item.cantidad }}</td>
 
-    <div style="margin-top: 12px;">
-      <button type="submit">Guardar precios</button>
-      <a href="{% url 'cc_detail' cc.pk %}" style="margin-left:10px;">Volver</a>
+                    {% for c in fila.celdas %}
+                      <td class="text-right">
+                        <input
+                          class="control control-cell"
+                          type="text"
+                          inputmode="decimal"
+                          name="precio_{{ c.proveedor_id }}_{{ c.producto_id }}"
+                          value="{{ c.precio_unit|floatformat:2 }}"
+                          {% if cc_bloqueado %}disabled{% endif %}
+                        />
+                      </td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="modal-actions">
+            {% if not cc_bloqueado %}
+              <button class="btn btn-primary" type="submit">💾 Guardar precios</button>
+            {% endif %}
+            <a class="btn btn-ghost" href="{% url 'cc_detail' cc.pk %}">Volver</a>
+          </div>
+        </form>
+      {% endif %}
     </div>
-  </form>
-
-  {% endif %}
+  </div>
 </div>
 {% endblock %}
