@@ -8,54 +8,55 @@
 
   <!-- 1) CABECERA -->
   <div class="card">
-    <div class="hstack between items-start">
-      <div>
-        <h2 class="m0">Cuadro comparativo: {{ cc.number }}</h2>
+  <div class="hstack between items-start">
+    <div>
+      <h2 class="m0">Cuadro comparativo: {{ cc.number }}</h2>
 
-        <div class="muted mt-sm">
-          Estado: <b>{{ cc.get_estado_display }}</b>
-          &nbsp;|&nbsp; Fecha: {{ cc.creado_en|date:"d/m/Y H:i" }}
-        </div>
+      <div class="muted mt-sm">
+        Estado: <b>{{ cc.get_estado_display }}</b>
+        &nbsp;|&nbsp; Fecha: {{ cc.creado_en|date:"d/m/Y H:i" }}
 
-        {% if cc_bloqueado %}
-        <div class="muted" style="margin-top:8px;">🔒 Edición bloqueada.</div>
+        {% if not cc_bloqueado %}
+          {% if user.is_superuser or is_reviewer or cc.creado_por_id == user.id %}
+            &nbsp;|&nbsp;
+            <a class="btn btn-ghost btn-sm" href="{% url 'cc_edit_header' cc.pk %}">✏️ Editar cabecera</a>
+          {% endif %}
         {% endif %}
-
-        <div class="mt-md">
-          <div><b>Item cotizado:</b> {{ cc.item_cotizado }}</div>
-          <div><b>Proyecto:</b> {{ cc.proyecto }}</div>
-          <div><b>Expresado en:</b> {{ cc.expresado_en }}</div>
-
-          {% if not cc_bloqueado %}
-            {% if user.is_superuser or is_reviewer or cc.creado_por_id == user.id %}
-              <div class="mt-sm">
-                <a class="btn btn-ghost btn-sm" href="{% url 'cc_edit_header' cc.pk %}">✏️ Editar cabecera</a>
-              </div>
-            {% endif %}
-          {% endif %}
-          
-        </div>
-
-        <div style="margin-top:12px;">
-          <b>Órdenes creadas:</b>
-          {% if ordenes %}
-            <span style="display:inline-flex; gap:8px; flex-wrap:wrap; margin-left:8px;">
-              {% for op in ordenes %}
-                <a class="btn btn-ghost btn-sm" href="{% url 'op_detail' op.id %}">{{ op.number }}</a>
-              {% endfor %}
-            </span>
-          {% else %}
-            Ninguna
-          {% endif %}
-        </div>
-
       </div>
 
-      <div class="hstack">
-        <a class="btn btn-ghost" href="{% url 'cc_list' %}">← Volver</a>
+      {% if cc_bloqueado %}
+        <div class="muted mt-sm">🔒 Edición bloqueada.</div>
+      {% endif %}
+
+      <div class="mt-md">
+        <div><b>Item cotizado:</b> {{ cc.item_cotizado }}</div>
+        <div><b>Proyecto:</b> {{ cc.proyecto }}</div>
+        <div><b>Expresado en:</b> {{ cc.expresado_en }}</div>
+      </div>
+
+      <div class="mt-md hstack">
+        <b>Órdenes creadas:</b>
+
+        {% if ordenes %}
+          <span class="hstack mt-xs">
+            {% for op in ordenes %}
+              <a class="btn btn-sm btn-softcyan" href="{% url 'op_detail' op.id %}">
+                {{ op.number }}
+              </a>
+            {% endfor %}
+          </span>
+        {% else %}
+          <span class="muted">Ninguna</span>
+        {% endif %}
       </div>
     </div>
+
+    <div class="hstack">
+      <a class="btn btn-ghost" href="{% url 'cc_list' %}">← Volver</a>
+    </div>
   </div>
+</div>
+
 
   <!-- 2) PRODUCTOS -->
   <div class="card">

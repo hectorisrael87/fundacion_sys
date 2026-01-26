@@ -681,8 +681,41 @@ body{
 .control-cell{ width:160px; }
 
 .inline-form{ display:inline; }
-.file-actions{ gap:10px; align-items:center; }
-.file-actions .control{ width:260px; }
+
+/* ==== Adjuntos: alineación input file + botón ==== */
+.file-actions{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+
+.file-actions .control-file{
+  flex: 1 1 320px;      /* crece y baja si no hay espacio */
+  min-width: 260px;
+  max-width: 520px;
+  width: auto;          /* evita que se “fije” */
+}
+
+.file-actions .btn{
+  white-space: nowrap;  /* evita que “Adjuntar” se parta */
+}
+
+/* Mobile: input ocupa todo el ancho, botón se acomoda */
+@media (max-width: 640px){
+  .file-actions{
+    align-items:stretch;
+    justify-content:flex-start;
+  }
+  .file-actions .control-file{
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+
+
+
 
 /* ==== Links clean (tables) ==== */
 .link-plain{
@@ -701,17 +734,39 @@ body{
   border-radius: 10px;
   width: 320px;
   background: #fff;
+  font-size: 12px; /* ✅ más chico para que no se vea apretado */
 }
 
 .control-file::file-selector-button{
   border: 1px solid var(--line);
   background: #fff;
-  padding: 8px 10px;
+  padding: 6px 8px;     /* ✅ más compacto */
   border-radius: 10px;
   cursor: pointer;
   margin-right: 10px;
+  font-size: 12px;      /* ✅ más chico */
 }
 
 .control-file::file-selector-button:hover{
   background: rgba(15,23,42,.04);
+}
+
+/* en filas de adjuntos (header derecho) */
+.file-actions{
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.file-actions .control-file{
+  width: 280px; /* ✅ evita que se “apriete” el texto */
+}
+
+/* botón suave para "Órdenes creadas" */
+.btn-softcyan{
+  background: #CEFAFE;
+  border-color: #CEFAFE;
+  color: var(--text);
+}
+.btn-softcyan:hover{
+  filter: brightness(.98);
 }
