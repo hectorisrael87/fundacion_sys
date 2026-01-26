@@ -147,72 +147,6 @@
     </table>
   </div>
 
-    <!-- 4) DOCUMENTOS Y COTIZACIONES -->
-  <div class="card">
-    <div class="hstack between items-start">
-      <div>
-        <h3 class="m0">Documentos y cotizaciones</h3>
-        <div class="muted mt-sm">Adjunta las cotizaciones (PDF/imagen) para respaldar el cuadro.</div>
-      </div>
-
-      {% if can_edit_docs %}
-        <form method="post"
-              action="{% url 'cc_attachment_upload' cc.pk %}"
-              enctype="multipart/form-data"
-              class="hstack">
-          {% csrf_token %}
-          {{ attachment_form.archivo }}
-          <button class="btn btn-sm" type="submit">📎 Adjuntar</button>
-        </form>
-      {% else %}
-        <span class="muted">—</span>
-      {% endif %}
-    </div>
-
-    <div class="mt-md">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Archivo</th>
-            <th>Subido por</th>
-            <th class="nowrap">Fecha</th>
-            <th class="text-right nowrap">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for a in adjuntos %}
-            <tr>
-              <td>
-                <a href="{{ a.archivo.url }}" target="_blank" rel="noopener">
-                  {{ a.nombre|default:"Documento" }}
-                </a>
-              </td>
-              <td>{{ a.subido_por.get_full_name|default:a.subido_por.username }}</td>
-              <td class="nowrap">{{ a.subido_en|date:"d/m/Y H:i" }}</td>
-              <td class="text-right nowrap">
-                <a class="btn btn-ghost btn-sm" href="{{ a.archivo.url }}" target="_blank" rel="noopener">👁️</a>
-
-                {% if can_edit_docs %}
-                  <form method="post"
-                        action="{% url 'cc_attachment_delete' cc.pk a.id %}"
-                        style="display:inline;">
-                    {% csrf_token %}
-                    <button class="btn btn-danger btn-sm" type="submit">🗑️</button>
-                  </form>
-                {% else %}
-                  <span class="muted">—</span>
-                {% endif %}
-              </td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="4">Sin documentos adjuntos.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-
   <!-- 4) PRECIOS Y TOTALES -->
   <div class="card">
     <div class="hstack between">
@@ -332,6 +266,69 @@
         —
       {% endif %}
     </p>
+  </div>
+    <!-- DOCUMENTOS Y COTIZACIONES -->
+  <div class="card">
+    <div class="hstack between items-start">
+      <div>
+        <h3 class="m0">Documentos y cotizaciones</h3>
+        <div class="muted mt-sm">Adjunta las cotizaciones (PDF/imagen) para respaldar el cuadro.</div>
+      </div>
+
+      {% if can_edit_docs %}
+        <form method="post"
+              action="{% url 'cc_attachment_upload' cc.pk %}"
+              enctype="multipart/form-data"
+              class="hstack file-actions">
+          {% csrf_token %}
+          {{ attachment_form.archivo }}
+          <button class="btn btn-sm" type="submit">📎 Adjuntar</button>
+        </form>
+      {% else %}
+        <span class="muted">—</span>
+      {% endif %}
+    </div>
+
+    <div class="mt-md">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Archivo</th>
+            <th>Subido por</th>
+            <th class="nowrap">Fecha</th>
+            <th class="text-right nowrap">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in adjuntos %}
+            <tr>
+              <td>
+                <a class="link-plain" href="{{ a.archivo.url }}" target="_blank" rel="noopener">
+                  {{ a.nombre|default:"Documento" }}
+                </a>
+              </td>
+              <td>{{ a.subido_por.get_full_name|default:a.subido_por.username }}</td>
+              <td class="nowrap">{{ a.subido_en|date:"d/m/Y H:i" }}</td>
+              <td class="text-right nowrap">
+                <a class="btn btn-ghost btn-sm no-underline" href="{{ a.archivo.url }}" target="_blank" rel="noopener">👁️</a>
+                {% if can_edit_docs %}
+                  <form method="post"
+                        action="{% url 'cc_attachment_delete' cc.pk a.id %}"
+                        class="inline-form">
+                    {% csrf_token %}
+                    <button class="btn btn-danger btn-sm" type="submit">🗑️</button>
+                  </form>
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4">Sin documentos adjuntos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- 7) SELECCIÓN Y FLUJO -->

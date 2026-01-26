@@ -181,10 +181,10 @@ def cc_detail(request, pk: int):
         not cc_bloqueado
         and (
             request.user.is_superuser
-            or is_reviewer(request.user)
             or cc.creado_por_id == request.user.id
         )
     )
+
     return render(
         request,
         "procurement/cc_detail.html",
@@ -745,13 +745,11 @@ def cc_attachment_upload(request, pk: int):
         messages.error(request, "Este cuadro está en borrador y aún no está disponible para revisión.")
         return redirect("cc_list")
 
-    # Permiso: solo creador o revisor (o superuser). Aprobador NO sube.
-    if not (
-        request.user.is_superuser
-        or is_reviewer(request.user)
-        or cc.creado_por_id == request.user.id
-    ):
-        return HttpResponseForbidden("No tienes permiso para adjuntar documentos a este cuadro.")
+    # Permiso: solo creador (o superuser) puede adjuntar
+    if not (request.user.is_superuser or cc.creado_por_id == request.user.id):
+        messages.error(request, "No tienes permiso para adjuntar documentos a este cuadro.")
+        return redirect("cc_detail", pk=pk)
+
 
     # Si está aprobado, no se permite adjuntar (excepto superuser)
     if cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser:
@@ -778,13 +776,11 @@ def cc_attachment_upload(request, pk: int):
 def cc_attachment_delete(request, pk: int, att_id: int):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
-    # Permiso: solo creador o revisor (o superuser).
-    if not (
-        request.user.is_superuser
-        or is_reviewer(request.user)
-        or cc.creado_por_id == request.user.id
-    ):
-        return HttpResponseForbidden("No tienes permiso para eliminar adjuntos de este cuadro.")
+    # Permiso: solo creador (o superuser) puede eliminar adjuntos
+    if not (request.user.is_superuser or cc.creado_por_id == request.user.id):
+        messages.error(request, "No tienes permiso para eliminar adjuntos de este cuadro.")
+        return redirect("cc_detail", pk=pk)
+
 
     # Si está aprobado, no se permite eliminar (excepto superuser)
     if cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser:

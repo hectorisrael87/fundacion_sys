@@ -60,5 +60,7 @@ class ComparativeAttachmentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _add_control(self)
+        self.fields["archivo"].widget.attrs["class"] = "control control-file"
+
         # opcional: hint
         self.fields["archivo"].help_text = "Adjunta cotizaciones (PDF/imagen)."
