@@ -20,12 +20,15 @@
       </div>
     </div>
 
-    <div class="topbar-center">
-      <div class="searchbox">
-        <span class="searchicon">🔎</span>
-        <input type="text" placeholder="Buscar..." />
-      </div>
+     <div class="topbar-center">
+      {% if user.is_authenticated %}
+        <div class="searchbox">
+          <span class="searchicon">🔎</span>
+          <input type="text" placeholder="Buscar..." />
+        </div>
+      {% endif %}
     </div>
+
 
     <div class="topbar-right">
       {% if user.is_authenticated %}
@@ -41,27 +44,30 @@
       {% endif %}
     </div>
   </header>
-
   <div class="layout">
-    <aside class="sidebar">
-      <nav class="nav">
-        <a class="nav-link" href="{% url 'home' %}">🏠 Dashboard</a>
-        <a class="nav-link" href="{% url 'cc_list' %}">📄 Cuadros comparativos</a>
-        <a class="nav-link" href="{% url 'op_list' %}">💳 Órdenes de pago</a>
-        <a class="nav-link" href="{% url 'provider_list' %}">🏭 Proveedores</a>
-        <a class="nav-link" href="/admin/">⚙️ Administración</a>
-      </nav>
+    {% if user.is_authenticated %}
+      <aside class="sidebar">
+        <nav class="nav">
+          <a class="nav-link" href="{% url 'home' %}">🏠 Dashboard</a>
+          <a class="nav-link" href="{% url 'cc_list' %}">📄 Cuadros comparativos</a>
+          <a class="nav-link" href="{% url 'op_list' %}">💳 Órdenes de pago</a>
+          <a class="nav-link" href="{% url 'provider_list' %}">🏭 Proveedores</a>
+          <a class="nav-link" href="/admin/">⚙️ Administración</a>
+        </nav>
 
-      {% if user.is_authenticated %}
-      <div class="sidebar-footer">
-        <div class="small muted">{{ user.get_full_name|default:user.username }}</div>
-        <div class="small muted">Sesión activa</div>
-      </div>
-      {% endif %}
-    </aside>
+        <div class="sidebar-footer">
+          <div class="small muted">{{ user.get_full_name|default:user.username }}</div>
+          <div class="small muted">Sesión activa</div>
 
-    <main class="content">
-      <div class="container">
+          <div class="mt-sm">
+            <a class="nav-link" href="{% url 'password_change' %}">🔒 Cambiar contraseña</a>
+          </div>
+        </div>
+      </aside>
+    {% endif %}
+
+    <main class="content {% if not user.is_authenticated %}content-full{% endif %}">
+      <div class="container {% if not user.is_authenticated %}auth-container{% endif %}">
         {% if messages %}
           <ul class="messages">
             {% for message in messages %}
@@ -74,6 +80,7 @@
       </div>
     </main>
   </div>
+
 
 </body>
 </html>

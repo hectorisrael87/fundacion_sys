@@ -2,26 +2,27 @@
 {% block title %}Ingresar{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 420px;">
-  <h2>Ingresar</h2>
+<div class="card">
+  <h2 class="m0">Ingresar</h2>
 
   {% if form.errors %}
-    <p style="color:#b91c1c;">Usuario o contraseña incorrectos.</p>
+    <div class="msg error mt-sm">Usuario o contraseña incorrectos.</div>
   {% endif %}
 
-  <form method="post">
+  <form method="post" class="auth-form mt">
     {% csrf_token %}
-    <div>
-      <label>Usuario</label><br>
+
+    <div class="field">
+      <label class="label">Usuario</label>
       {{ form.username }}
     </div>
-    <br>
-    <div>
-      <label>Contraseña</label><br>
+
+    <div class="field">
+      <label class="label">Contraseña</label>
       {{ form.password }}
     </div>
-    <br>
-    <button type="submit">Entrar</button>
+
+    <button class="btn btn-primary" type="submit">Entrar</button>
   </form>
 </div>
 {% endblock %}

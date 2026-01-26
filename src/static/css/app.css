@@ -770,3 +770,31 @@ body{
 .btn-softcyan:hover{
   filter: brightness(.98);
 }
+
+/* ==== Auth pages ==== */
+.content-full{ margin-left:0; }
+.auth-container{
+  max-width: 520px;
+  margin: 0 auto;
+}
+.auth-form{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.auth-form label{ font-weight:800; font-size:13px; }
+.auth-form input{
+  width:100%;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  color:var(--text);
+  font-size:14px;
+  box-shadow: inset 0 1px 2px rgba(15,23,42,.04);
+}
+.auth-form input:focus{
+  outline:none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+}
