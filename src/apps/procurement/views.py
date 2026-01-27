@@ -24,6 +24,12 @@ from .forms import (
 from .models import ComparativeQuote, ComparativeQuoteAttachment
 
 
+LOCKED_CC_STATES = {ComparativeQuote.Status.APROBADO, ComparativeQuote.Status.RECHAZADO}
+
+def _can_edit_cc(user, cc: ComparativeQuote) -> bool:
+    # ✅ aprobador (solo aprobador) NO edita nunca
+    return user.is_superuser or is_reviewer(user) or (cc.creado_por_id == user.id)
+
 
 @login_required
 def cc_list(request):
@@ -135,19 +141,24 @@ def cc_edit_header(request, pk: int):
 @login_required
 def cc_detail(request, pk: int):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
+
+    user = request.user
+    is_rev = (user.is_superuser or is_reviewer(user))
+    is_app = (user.is_superuser or is_approver(user))
+
     # Si está en BORRADOR, solo el creador o superuser pueden verlo
     if cc.estado == ComparativeQuote.Status.BORRADOR and not (
-        request.user.is_superuser or cc.creado_por_id == request.user.id
+        user.is_superuser or cc.creado_por_id == user.id
     ):
         messages.error(request, "Este cuadro está en borrador y aún no está disponible para revisión.")
         return redirect("cc_list")
 
     # Permiso de lectura (evita acceso por URL directa)
     if not (
-        request.user.is_superuser
-        or is_reviewer(request.user)
-        or is_approver(request.user)
-        or cc.creado_por_id == request.user.id
+        user.is_superuser
+        or is_reviewer(user)
+        or is_approver(user)
+        or cc.creado_por_id == user.id
     ):
         return HttpResponseForbidden("No tienes permiso para ver este cuadro.")
 
@@ -170,18 +181,29 @@ def cc_detail(request, pk: int):
 
     total_general = sum(totales_por_proveedor.values(), Decimal("0"))
 
-    # 🔒 Bloqueo visual/funcional cuando está APROBADO (excepto superuser)
-    cc_bloqueado = (cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser)
-    
+    # 🔒 Bloqueo visual/funcional cuando está en estados bloqueados (excepto superuser)
+    cc_bloqueado = (cc.estado in LOCKED_CC_STATES and not user.is_superuser)
+
+    # ✅ Permiso de edición del cuadro (creador + revisor + superuser), pero bloqueado si estado bloqueado
+    can_edit_cc = (
+        not cc_bloqueado
+        and (
+            user.is_superuser
+            or is_reviewer(user)
+            or cc.creado_por_id == user.id
+        )
+    )
+
     adjuntos = list(
         cc.adjuntos.select_related("subido_por").all().order_by("-subido_en")
     )
 
+    # ✅ Adjuntos: solo creador + superuser (y bloqueado si estado bloqueado)
     can_edit_docs = (
         not cc_bloqueado
         and (
-            request.user.is_superuser
-            or cc.creado_por_id == request.user.id
+            user.is_superuser
+            or cc.creado_por_id == user.id
         )
     )
 
@@ -189,16 +211,19 @@ def cc_detail(request, pk: int):
         request,
         "procurement/cc_detail.html",
         {
-           "cc": cc,
+            "cc": cc,
             "items": items,
             "proveedores": proveedores,
             "precios": precios,
             "totales_por_proveedor": totales_por_proveedor,
             "total_general": total_general,
             "ordenes": cc.ordenes_pago.all(),
-            "is_reviewer": (request.user.is_superuser or is_reviewer(request.user)),
-            "is_approver": (request.user.is_superuser or is_approver(request.user)),
+
+            "is_reviewer": is_rev,
+            "is_approver": is_app,
+
             "cc_bloqueado": cc_bloqueado,
+            "can_edit_cc": can_edit_cc,
 
             # Adjuntos (cotizaciones)
             "adjuntos": adjuntos,
@@ -241,6 +266,15 @@ def cc_delete(request, pk: int):
 def cc_add_item(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
+    if cc.estado in LOCKED_CC_STATES:
+        messages.error(request, "El cuadro está bloqueado y no se puede editar.")
+        return redirect("cc_detail", pk=cc.pk)
+
+    if not _can_edit_cc(request.user, cc):
+        messages.error(request, "No tienes permisos para editar este cuadro (solo ver).")
+        return redirect("cc_detail", pk=cc.pk)
+
+
     # 🔒 Si está aprobado: no se puede editar (excepto superuser)
     if cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser:
         messages.error(request, "El cuadro está APROBADO y no se puede editar.")
@@ -271,6 +305,15 @@ def cc_add_item(request, pk):
 @login_required
 def cc_add_supplier(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
+
+    if cc.estado in LOCKED_CC_STATES:
+        messages.error(request, "El cuadro está bloqueado y no se puede editar.")
+        return redirect("cc_detail", pk=cc.pk)
+
+    if not _can_edit_cc(request.user, cc):
+        messages.error(request, "No tienes permisos para editar este cuadro (solo ver).")
+        return redirect("cc_detail", pk=cc.pk)
+
 
     # 🔒 Si está aprobado: no se puede editar (excepto superuser)
     if cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser:
@@ -393,6 +436,13 @@ def cc_delete_supplier(request, pk, supplier_id):
 @login_required
 def cc_prices(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
+    if cc.estado in LOCKED_CC_STATES:
+        messages.error(request, "El cuadro está bloqueado y no se puede editar.")
+        return redirect("cc_detail", pk=cc.pk)
+
+    if not _can_edit_cc(request.user, cc):
+        messages.error(request, "No tienes permisos para editar este cuadro (solo ver).")
+        return redirect("cc_detail", pk=cc.pk)
 
     # 🔒 Si está aprobado: se permite VER, pero no GUARDAR (excepto superuser)
     cc_bloqueado = (cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser)
@@ -465,6 +515,13 @@ def cc_prices(request, pk):
 @login_required
 def cc_select_supplier(request, pk):
     cc = get_object_or_404(ComparativeQuote, pk=pk)
+    if cc.estado in LOCKED_CC_STATES:
+        messages.error(request, "El cuadro está bloqueado y no se puede editar.")
+        return redirect("cc_detail", pk=cc.pk)
+
+    if not _can_edit_cc(request.user, cc):
+        messages.error(request, "No tienes permisos para editar este cuadro (solo ver).")
+        return redirect("cc_detail", pk=cc.pk)
 
     if cc.estado == ComparativeQuote.Status.APROBADO and not request.user.is_superuser:
         messages.error(request, "El cuadro está APROBADO: no se puede cambiar el proveedor seleccionado.")
@@ -502,19 +559,23 @@ def cc_send_review(request, pk):
         messages.error(request, "Este cuadro ya está aprobado y no puede volver a revisión.")
         return redirect("cc_detail", pk=pk)
 
-    if cc.estado != ComparativeQuote.Status.BORRADOR:
-        messages.error(request, "Solo se puede enviar a revisión un cuadro en estado BORRADOR.")
-        return redirect("cc_detail", pk=pk)
+   
+    if cc.estado not in {ComparativeQuote.Status.BORRADOR, ComparativeQuote.Status.RECHAZADO}:
+        messages.error(request, "Solo puedes enviar a revisión desde Borrador o Rechazado.")
+        return redirect("cc_detail", pk=cc.pk)
 
     cc.estado = ComparativeQuote.Status.EN_REVISION
     cc.revisado_por = None
     cc.revisado_en = None
     cc.aprobado_por = None
     cc.aprobado_en = None
-    cc.save(update_fields=["estado", "revisado_por", "revisado_en", "aprobado_por", "aprobado_en"])
-
-    messages.success(request, "Enviado a revisión.")
-    return redirect("cc_detail", pk=pk)
+    cc.rechazado_por = None
+    cc.rechazado_en = None
+    cc.save(update_fields=[
+        "estado", "revisado_por", "revisado_en", "aprobado_por", "aprobado_en", "rechazado_por", "rechazado_en"
+    ])
+    messages.success(request, "Cuadro enviado a revisión.")
+    return redirect("cc_detail", pk=cc.pk)
 
 
 @login_required
@@ -602,10 +663,13 @@ def cc_back_to_draft(request, pk):
 
 @login_required
 def cc_generate_ops(request, pk):
-    # Solo creador (o superuser) puede generar OPs desde el cuadro
-    if not (request.user.is_superuser or cc.creado_por_id == request.user.id):
-        messages.error(request, "No tienes permiso para generar órdenes de pago desde este cuadro.")
-        return redirect("cc_detail", pk=pk)
+    cc = get_object_or_404(ComparativeQuote, pk=pk)
+    user = request.user
+
+    if not (user.is_superuser or cc.creado_por_id == user.id):
+        return HttpResponseForbidden("No tiene permisos para generar OPs desde este cuadro.")
+
+    # ...resto igual...
 
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
@@ -794,3 +858,32 @@ def cc_attachment_delete(request, pk: int, att_id: int):
     att.delete()
     messages.success(request, "Documento eliminado.")
     return redirect("cc_detail", pk=pk)
+
+@login_required
+def cc_reject(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    cc = get_object_or_404(ComparativeQuote, pk=pk)
+    user = request.user
+
+    if not (user.is_superuser or is_approver(user)):
+        return HttpResponseForbidden("No tiene permisos para rechazar.")
+
+    if cc.estado != ComparativeQuote.Status.REVISADO:
+        messages.error(request, "Solo se puede rechazar un cuadro en estado 'Revisado'.")
+        return redirect("cc_detail", pk=cc.pk)
+
+    if (not user.is_superuser) and cc.creado_por_id == user.id:
+        messages.error(request, "No puedes rechazar tu propio cuadro.")
+        return redirect("cc_detail", pk=cc.pk)
+
+    cc.estado = ComparativeQuote.Status.RECHAZADO
+    cc.rechazado_por = user
+    cc.rechazado_en = timezone.now()
+    cc.aprobado_por = None
+    cc.aprobado_en = None
+    cc.save(update_fields=["estado", "rechazado_por", "rechazado_en", "aprobado_por", "aprobado_en"])
+
+    messages.success(request, "Cuadro rechazado.")
+    return redirect("cc_detail", pk=cc.pk)

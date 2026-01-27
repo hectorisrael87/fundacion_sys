@@ -100,3 +100,50 @@ class PaymentOrderItem(models.Model):
 
     def __str__(self):
         return f"{self.orden.number} - {self.producto.nombre}"
+
+# ...imports...
+from django.conf import settings
+from django.db import models
+
+class PaymentOrder(models.Model):
+    class Status(models.TextChoices):
+        BORRADOR = "BORRADOR", "Borrador"
+        EN_REVISION = "EN_REVISION", "En revisión"
+        REVISADO = "REVISADO", "Revisado"
+        APROBADO = "APROBADO", "Aprobado"
+        RECHAZADO = "RECHAZADO", "Rechazado"  # ✅ nuevo
+
+    estado = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.BORRADOR,
+    )
+
+    # ...campos existentes...
+    revisado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="op_revisadas",
+    )
+    revisado_en = models.DateTimeField(null=True, blank=True)
+
+    aprobado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="op_aprobadas",
+    )
+    aprobado_en = models.DateTimeField(null=True, blank=True)
+
+    # ✅ nuevos (rechazo)
+    rechazado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="op_rechazadas",
+    )
+    rechazado_en = models.DateTimeField(null=True, blank=True)

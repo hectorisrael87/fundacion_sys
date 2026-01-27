@@ -10,6 +10,8 @@ urlpatterns = [
     path("<int:pk>/mark-reviewed/", views.op_mark_reviewed, name="op_mark_reviewed"),
     path("<int:pk>/approve/", views.op_approve, name="op_approve"),
     path("<int:pk>/back-to-draft/", views.op_back_to_draft, name="op_back_to_draft"),
+    path("<int:pk>/back-to-review/", views.op_back_to_review, name="op_back_to_review"),
+    path("<int:pk>/reject/", views.op_reject, name="op_reject"),
 
     # imprimir
     path("ordenes/<int:pk>/imprimir/", views.op_print, name="op_print"),

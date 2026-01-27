@@ -16,7 +16,7 @@
         Estado: <b>{{ cc.get_estado_display }}</b>
         &nbsp;|&nbsp; Fecha: {{ cc.creado_en|date:"d/m/Y H:i" }}
 
-        {% if not cc_bloqueado %}
+        {% if can_edit_cc %}
           {% if user.is_superuser or is_reviewer or cc.creado_por_id == user.id %}
             &nbsp;|&nbsp;
             <a class="btn btn-ghost btn-sm" href="{% url 'cc_edit_header' cc.pk %}">✏️ Editar cabecera</a>
@@ -24,7 +24,7 @@
         {% endif %}
       </div>
 
-      {% if cc_bloqueado %}
+      {% if can_edit_cc %}
         <div class="muted mt-sm">🔒 Edición bloqueada.</div>
       {% endif %}
 
@@ -63,7 +63,7 @@
     <div class="hstack between">
       <h3 class="m0">Productos</h3>
 
-      {% if not cc_bloqueado %}
+      {% if can_edit_cc %}
         <a class="btn" href="{% url 'cc_add_item' cc.pk %}">➕ Agregar / Editar productos</a>
       {% else %}
         <span class="muted">🔒 Agregar/editar bloqueado</span>
@@ -86,7 +86,7 @@
             <td>{{ it.unidad }}</td>
             <td class="text-right">{{ it.cantidad|floatformat:2 }}</td>
             <td class="text-right">
-              {% if not cc_bloqueado %}
+              {% if can_edit_cc %}
                 <a href="{% url 'cc_edit_item' cc.pk it.id %}">✏️</a>
                 &nbsp;
                 <a href="{% url 'cc_delete_item' cc.pk it.id %}">🗑️</a>
@@ -107,7 +107,7 @@
     <div class="hstack between">
       <h3 class="m0">Proveedores</h3>
 
-      {% if not cc_bloqueado %}
+      {% if can_edit_cc %}
         <a class="btn" href="{% url 'cc_add_supplier' cc.pk %}">➕ Agregar / Editar proveedores</a>
       {% else %}
         <span class="muted">🔒 Agregar/editar bloqueado</span>
@@ -131,7 +131,7 @@
             <td>{{ ps.detalle|default:"-" }}</td>
             <td class="text-right nowrap">
               
-              {% if not cc_bloqueado %}
+              {% if can_edit_cc %}
                 
                 <a title="Editar proveedor (en el cuadro)" href="{% url 'cc_edit_supplier' cc.pk ps.id %}">✏️</a>
                 &nbsp;
@@ -153,7 +153,7 @@
     <div class="hstack between">
       <h3 class="m0">Precios y Totales</h3>
 
-      {% if not cc_bloqueado %}
+      {% if can_edit_cc %}
         <a class="btn" href="{% url 'cc_prices' cc.pk %}">💲 Cargar / Editar matriz</a>
       {% else %}
         <a class="btn btn-ghost" href="{% url 'cc_prices' cc.pk %}">👁️ Ver matriz</a>
@@ -222,7 +222,7 @@
     <div class="hstack between">
       <h3 class="m0">Proveedor seleccionado - Motivo</h3>
 
-      {% if not cc_bloqueado %}
+      {% if can_edit_cc %}
         <a class="btn" href="{% url 'cc_select_supplier' cc.pk %}">✅ Seleccionar proveedor</a>
       {% else %}
         <span class="muted">🔒 Selección bloqueada</span>
@@ -267,6 +267,11 @@
         —
       {% endif %}
     </p>
+      {% if cc.rechazado_por and cc.rechazado_en %}
+        <p><b>Rechazado por:</b> {{ cc.rechazado_por.get_full_name|default:cc.rechazado_por.username }}</p>
+        <p><b>Rechazado en:</b> {{ cc.rechazado_en|date:"d/m/Y H:i" }}</p>
+      {% endif %}
+
   </div>
     <!-- DOCUMENTOS Y COTIZACIONES -->
   <div class="card">
@@ -352,14 +357,24 @@
           <span class="muted">⏳ Pendiente de revisión.</span>
         {% endif %}
       {% elif cc.estado == "REVISADO" %}
-        {% if is_approver %}
-          <a class="btn btn-primary" href="{% url 'cc_approve_final' cc.pk %}">✅ Aprobar</a>
-          <a class="btn btn-ghost" href="{% url 'cc_back_to_review' cc.pk %}">↩️ Devolver a revisión</a>
-        {% else %}
-          <span class="muted">⏳ Pendiente de aprobación.</span>
+        {% if is_approver and not is_reviewer %}
+          <form method="post" action="{% url 'cc_approve_final' cc.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button class="btn btn-primary" type="submit">✅ Aprobar</button>
+          </form>
+
+          <form method="post" action="{% url 'cc_back_to_review' cc.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button class="btn" type="submit">↩️ Devolver a revisión</button>
+          </form>
+
+          <form method="post" action="{% url 'cc_reject' cc.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button class="btn btn-danger" type="submit"
+              onclick="return confirm('¿Rechazar el cuadro {{ cc.number }}?');"
+            >❌ Rechazar</button>
+          </form>
         {% endif %}
-      {% elif cc.estado == "APROBADO" %}
-        <span class="muted">✅ Este cuadro ya está aprobado.</span>
       {% endif %}
 
       {% if user.is_superuser or cc.creado_por_id == user.id %}

@@ -38,7 +38,8 @@ def _bucket_for_estado(estado: str, *, is_rev: bool, is_app: bool) -> str:
             return "other"
         return "pending"
 
-    return "other"
+    if estado == ComparativeQuote.Status.RECHAZADO:
+        return "other"
 
 
 def _label_and_badge_for_estado(estado: str, *, kind: str, is_rev: bool, is_app: bool):
@@ -62,7 +63,9 @@ def _label_and_badge_for_estado(estado: str, *, kind: str, is_rev: bool, is_app:
         # Para creador y otros: “Revisado”
         return ("Revisado", "badge-reviewed")
 
-    return (estado, "badge-pending")
+    
+    if estado == ComparativeQuote.Status.RECHAZADO:
+    return ("Rechazado", "badge-rejected")
 
 
 @login_required

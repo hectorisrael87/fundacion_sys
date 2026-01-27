@@ -66,7 +66,9 @@
               <span class="badge badge-reviewed" data-live-status>✓ Revisado</span>
             {% elif c.estado == "APROBADO" %}
               <span class="badge badge-approved" data-live-status>✓ Aprobado</span>
-            {% else %}
+            {% elif c.estado == "RECHAZADO" %}
+              <span class="badge badge-rejected" data-live-status>✗ Rechazado</span>
+              {% else %}
               <span class="badge badge-draft" data-live-status>{{ c.get_estado_display }}</span>
             {% endif %}
           </td>

@@ -202,16 +202,20 @@ def op_send_review(request, pk: int):
         messages.error(request, "La OP ya está aprobada y no puede volver a revisión.")
         return redirect("op_detail", pk=pk)
 
-    if op.estado != PaymentOrder.Status.BORRADOR:
-        messages.error(request, "Solo se puede enviar a revisión una OP en estado BORRADOR.")
-        return redirect("op_detail", pk=pk)
+    if op.estado not in {PaymentOrder.Status.BORRADOR, PaymentOrder.Status.RECHAZADO}:
+        messages.error(request, "Solo puedes enviar a revisión desde Borrador o Rechazado.")
+        return redirect("op_detail", pk=op.pk)
 
     op.estado = PaymentOrder.Status.EN_REVISION
     op.revisado_por = None
     op.revisado_en = None
     op.aprobado_por = None
     op.aprobado_en = None
-    op.save(update_fields=["estado", "revisado_por", "revisado_en", "aprobado_por", "aprobado_en"])
+    op.rechazado_por = None
+    op.rechazado_en = None
+    op.save(update_fields=[
+        "estado", "revisado_por", "revisado_en", "aprobado_por", "aprobado_en", "rechazado_por", "rechazado_en"
+    ])
 
     messages.success(request, "OP enviada a revisión.")
     return redirect("op_detail", pk=pk)
@@ -447,4 +451,59 @@ def op_create_complement(request, pk: int):
         )
 
     messages.success(request, f"Complemento creado: {op.number}")
+    return redirect("op_detail", pk=op.pk)
+
+@login_required
+def op_back_to_review(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    op = get_object_or_404(PaymentOrder, pk=pk)
+    user = request.user
+
+    if not (user.is_superuser or is_approver(user)):
+        return HttpResponseForbidden("No tiene permisos para devolver a revisión.")
+
+    if op.estado != PaymentOrder.Status.REVISADO:
+        messages.error(request, "Solo puedes devolver a revisión una OP en estado 'Revisado'.")
+        return redirect("op_detail", pk=op.pk)
+
+    if (not user.is_superuser) and op.creado_por_id == user.id:
+        messages.error(request, "No puedes devolver a revisión tu propia OP.")
+        return redirect("op_detail", pk=op.pk)
+
+    op.estado = PaymentOrder.Status.EN_REVISION
+    op.aprobado_por = None
+    op.aprobado_en = None
+    op.save(update_fields=["estado", "aprobado_por", "aprobado_en"])
+
+    messages.success(request, "OP devuelta a revisión.")
+    return redirect("op_detail", pk=op.pk)
+@login_required
+def op_reject(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    op = get_object_or_404(PaymentOrder, pk=pk)
+    user = request.user
+
+    if not (user.is_superuser or is_approver(user)):
+        return HttpResponseForbidden("No tiene permisos para rechazar.")
+
+    if op.estado != PaymentOrder.Status.REVISADO:
+        messages.error(request, "Solo se puede rechazar una OP en estado 'Revisado'.")
+        return redirect("op_detail", pk=op.pk)
+
+    if (not user.is_superuser) and op.creado_por_id == user.id:
+        messages.error(request, "No puedes rechazar tu propia OP.")
+        return redirect("op_detail", pk=op.pk)
+
+    op.estado = PaymentOrder.Status.RECHAZADO
+    op.rechazado_por = user
+    op.rechazado_en = timezone.now()
+    op.aprobado_por = None
+    op.aprobado_en = None
+    op.save(update_fields=["estado", "rechazado_por", "rechazado_en", "aprobado_por", "aprobado_en"])
+
+    messages.success(request, "OP rechazada.")
     return redirect("op_detail", pk=op.pk)

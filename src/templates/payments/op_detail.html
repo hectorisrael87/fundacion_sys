@@ -297,6 +297,11 @@
         —
       {% endif %}
     </p>
+    {% if op.rechazado_por and op.rechazado_en %}
+      <p><b>Rechazado por:</b> {{ op.rechazado_por.get_full_name|default:op.rechazado_por.username }}</p>
+      <p><b>Rechazado en:</b> {{ op.rechazado_en|date:"d/m/Y H:i" }}</p>
+    {% endif %}
+
   </div>
 
   {# Botones abajo (después de Registro) #}
@@ -312,10 +317,25 @@
           <a class="btn btn-ghost" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
         {% endif %}
       {% elif op.estado == "REVISADO" %}
-        {% if is_approver %}
-          <a class="btn btn-primary" href="{% url 'op_approve' op.pk %}">✅ Aprobar</a>
+        {% if is_approver and not is_reviewer %}
+          <form method="post" action="{% url 'op_approve_final' op.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button class="btn btn-primary" type="submit">✅ Aprobar</button>
+          </form>
+
+          <form method="post" action="{% url 'op_back_to_review' op.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button class="btn" type="submit">↩️ Devolver a revisión</button>
+          </form>
+
+          <form method="post" action="{% url 'op_reject' op.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button class="btn btn-danger" type="submit"
+              onclick="return confirm('¿Rechazar la OP {{ op.number }}?');"
+            >❌ Rechazar</button>
+          </form>
         {% endif %}
-      {% endif %}
+
 
       <a class="btn btn-ghost" href="{% url 'op_list' %}">← Volver</a>
     </div>

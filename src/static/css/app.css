@@ -542,6 +542,12 @@ body{
   border-color:#86efac;
   color:#166534;
 }
+.badge-rejected{
+  background:#fee2e2;
+  border-color:#fca5a5;
+  color:#991b1b;
+}
+
 
 .icon-action{
   display:inline-flex;

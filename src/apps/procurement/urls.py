@@ -15,8 +15,7 @@ from apps.procurement.views import (
     cc_back_to_review,
     cc_approve_final,
     cc_back_to_draft,
-
-    # ops / print
+       # ops / print
     cc_generate_ops,
     cc_print,
 
@@ -68,7 +67,7 @@ urlpatterns = [
     path("cuadros/<int:pk>/devolver-revision/", cc_back_to_review, name="cc_back_to_review"),
     path("cuadros/<int:pk>/aprobar/", cc_approve_final, name="cc_approve_final"),
     path("cuadros/<int:pk>/borrador/", cc_back_to_draft, name="cc_back_to_draft"),
-
+   
     # generar ops
     path("cuadros/<int:pk>/generar-ops/", cc_generate_ops, name="cc_generate_ops"),
 
@@ -82,4 +81,6 @@ urlpatterns = [
 
     # imprimir
     path("cuadros/<int:pk>/imprimir/", cc_print, name="cc_print"),
+
+     path("cuadros/<int:pk>/rechazar/", views.cc_reject, name="cc_reject"),
 ]
