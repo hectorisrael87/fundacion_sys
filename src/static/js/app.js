@@ -1,15 +1,18 @@
 (() => {
-  const POLL_MS = 15000; // 15s (ajustable)
+  const POLL_MS = 8000; // más rápido (8s). Si quieres 5s lo bajamos.
 
   const endpoints = {
     counts: "/api/pending-counts/",
     status: "/api/live-status/",
   };
 
+  let busy = false;
+
   async function fetchJSON(url) {
     const res = await fetch(url, {
       headers: { "X-Requested-With": "XMLHttpRequest" },
       credentials: "same-origin",
+      cache: "no-store",
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -29,7 +32,8 @@
 
   async function updateCounts() {
     try {
-      const data = await fetchJSON(endpoints.counts);
+      const url = `${endpoints.counts}?_=${Date.now()}`;
+      const data = await fetchJSON(url);
       setNavBadge(document.getElementById("nav-badge-cc"), data.cc_pending);
       setNavBadge(document.getElementById("nav-badge-op"), data.op_pending);
     } catch (_) {
@@ -41,7 +45,8 @@
     const byId = new Map(items.map((it) => [String(it.id), it]));
     const filter = table.dataset.liveFilter || "all";
 
-    table.querySelectorAll("tr[data-live-id]").forEach((tr) => {
+    // solo filas reales (no thead)
+    table.querySelectorAll("tbody tr[data-live-id]").forEach((tr) => {
       const id = tr.dataset.liveId;
       const it = byId.get(String(id));
       if (!it) return;
@@ -55,7 +60,7 @@
         badge.textContent = it.label || "";
       }
 
-      // Si estás en tab filtrado (pending/draft/approved), y el registro ya no pertenece, lo quitamos.
+      // si estás filtrando, y ya no pertenece, se quita (evita “fantasmas”)
       if (filter !== "all" && it.bucket && it.bucket !== filter) {
         tr.remove();
       }
@@ -66,15 +71,17 @@
     const tables = document.querySelectorAll("table[data-live-kind]");
     for (const table of tables) {
       const kind = table.dataset.liveKind;
-      const ids = Array.from(table.querySelectorAll("tr[data-live-id]"))
+
+      const ids = Array.from(table.querySelectorAll("tbody tr[data-live-id]"))
         .map((tr) => tr.dataset.liveId)
-        .filter(Boolean);
+        .filter((v) => v && /^\d+$/.test(v));
 
       if (!kind || ids.length === 0) continue;
 
       const url =
-        endpoints.status +
-        `?kind=${encodeURIComponent(kind)}&ids=${encodeURIComponent(ids.join(","))}`;
+        `${endpoints.status}?kind=${encodeURIComponent(kind)}` +
+        `&ids=${encodeURIComponent(ids.join(","))}` +
+        `&_=${Date.now()}`;
 
       try {
         const data = await fetchJSON(url);
@@ -87,13 +94,19 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    updateCounts();
-    refreshTables();
+  async function tick() {
+    if (busy) return;
+    busy = true;
+    try {
+      await updateCounts();
+      await refreshTables();
+    } finally {
+      busy = false;
+    }
+  }
 
-    setInterval(() => {
-      updateCounts();
-      refreshTables();
-    }, POLL_MS);
+  document.addEventListener("DOMContentLoaded", () => {
+    tick();
+    setInterval(tick, POLL_MS);
   });
 })();

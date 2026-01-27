@@ -19,7 +19,7 @@
 
   <table class="table" data-live-kind="op" data-live-filter="{{ status|default:'all' }}">
     <thead>
-      <tr data-live-id="{{ op.id }}">
+      <tr>
         <th>Número</th>
         <th>Descripción</th>
         <th>Para</th>
@@ -60,17 +60,17 @@
           <td>
             {# Mantener regla: reviewer/approver ven "Pendiente" en vez de técnico #}
             {% if is_reviewer and op.estado == "EN_REVISION" %}
-              <span class="badge badge-pending">● Pendiente</span>
+              <span class="badge badge-pending" data-live-status>● Pendiente</span>
             {% elif is_approver and op.estado == "REVISADO" %}
-              <span class="badge badge-pending">● Pendiente</span>
+              <span class="badge badge-pending" data-live-status>● Pendiente</span>
             {% elif op.estado == "BORRADOR" %}
-              <span class="badge badge-draft">📝 Borrador</span>
+              <span class="badge badge-draft" data-live-status>📝 Borrador</span>
             {% elif op.estado == "EN_REVISION" %}
-              <span class="badge badge-pending">● En revisión</span>
+              <span class="badge badge-pending" data-live-status>● En revisión</span>
             {% elif op.estado == "REVISADO" %}
-              <span class="badge badge-reviewed">✓ Revisado</span>
+              <span class="badge badge-reviewed" data-live-status>✓ Revisado</span>
             {% elif op.estado == "APROBADO" %}
-              <span class="badge badge-approved">✓ Aprobado</span>
+              <span class="badge badge-approved" data-live-status>✓ Aprobado</span>
             {% else %}
               <span class="badge badge-draft" data-live-status>{{ op.get_estado_display }}</span>
             {% endif %}

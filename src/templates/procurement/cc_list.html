@@ -21,7 +21,7 @@
 
   <table class="table" data-live-kind="cc" data-live-filter="{{ status|default:'all' }}" style="width:100%; border-collapse: collapse; margin-top: 12px;">
     <thead>
-      <tr data-live-id="{{ c.id }}">
+      <tr>
         <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">N°</th>
         <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">ARTÍCULO</th>
         <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">PROYECTO</th>
@@ -55,17 +55,17 @@
           <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0;">
             {# Mantiene regla: reviewer/approver ven "Pendiente" en vez de estado técnico #}
             {% if is_reviewer and c.estado == "EN_REVISION" %}
-              <span class="badge badge-pending">● Pendiente</span>
+              <span class="badge badge-pending" data-live-status>● Pendiente</span>
             {% elif is_approver and c.estado == "REVISADO" %}
-              <span class="badge badge-pending">● Pendiente</span>
+              <span class="badge badge-pending" data-live-status>● Pendiente</span>
             {% elif c.estado == "BORRADOR" %}
-              <span class="badge badge-draft">📝 Borrador</span>
+              <span class="badge badge-draft" data-live-status>📝 Borrador</span>
             {% elif c.estado == "EN_REVISION" %}
-              <span class="badge badge-pending">● En revisión</span>
+              <span class="badge badge-pending" data-live-status>● En revisión</span>
             {% elif c.estado == "REVISADO" %}
-              <span class="badge badge-reviewed">✓ Revisado</span>
+              <span class="badge badge-reviewed" data-live-status>✓ Revisado</span>
             {% elif c.estado == "APROBADO" %}
-              <span class="badge badge-approved">✓ Aprobado</span>
+              <span class="badge badge-approved" data-live-status>✓ Aprobado</span>
             {% else %}
               <span class="badge badge-draft" data-live-status>{{ c.get_estado_display }}</span>
             {% endif %}
