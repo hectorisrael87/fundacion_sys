@@ -17,9 +17,9 @@
     <a class="tab {% if status == 'approved' %}active{% endif %}" href="{% url 'op_list' %}?status=approved">Aprobado</a>
   </div>
 
-  <table class="table">
+  <table class="table" data-live-kind="op" data-live-filter="{{ status|default:'all' }}">
     <thead>
-      <tr>
+      <tr data-live-id="{{ op.id }}">
         <th>Número</th>
         <th>Descripción</th>
         <th>Para</th>
@@ -33,7 +33,7 @@
 
     <tbody>
       {% for op in ordenes %}
-        <tr>
+        <tr data-live-id="{{ op.id }}">
           <td>
             <b><a href="{% url 'op_detail' op.pk %}">{{ op.number }}</a></b>
           </td>
@@ -72,7 +72,7 @@
             {% elif op.estado == "APROBADO" %}
               <span class="badge badge-approved">✓ Aprobado</span>
             {% else %}
-              <span class="badge badge-draft">{{ op.get_estado_display }}</span>
+              <span class="badge badge-draft" data-live-status>{{ op.get_estado_display }}</span>
             {% endif %}
           </td>
 

@@ -19,9 +19,9 @@
     <a class="tab {% if status == 'approved' %}active{% endif %}" href="{% url 'cc_list' %}?status=approved">Aprobado</a>
   </div>
 
-  <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
+  <table class="table" data-live-kind="cc" data-live-filter="{{ status|default:'all' }}" style="width:100%; border-collapse: collapse; margin-top: 12px;">
     <thead>
-      <tr>
+      <tr data-live-id="{{ c.id }}">
         <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">N°</th>
         <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">ARTÍCULO</th>
         <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb;">PROYECTO</th>
@@ -34,7 +34,8 @@
 
     <tbody>
       {% for c in cuadros %}
-        <tr>
+        <tr data-live-id="{{ c.id }}">
+
           <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0;">
             <b>{{ c.number }}</b>
           </td>
@@ -66,7 +67,7 @@
             {% elif c.estado == "APROBADO" %}
               <span class="badge badge-approved">✓ Aprobado</span>
             {% else %}
-              <span class="badge badge-draft">{{ c.get_estado_display }}</span>
+              <span class="badge badge-draft" data-live-status>{{ c.get_estado_display }}</span>
             {% endif %}
           </td>
 
@@ -93,7 +94,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="7" style="padding:10px 8px;">No hay cuadros todavía.</td></tr>
+        <tr data-live-id="{{ c.id }}"><td colspan="7" style="padding:10px 8px;">No hay cuadros todavía.</td></tr>
       {% endfor %}
     </tbody>
   </table>

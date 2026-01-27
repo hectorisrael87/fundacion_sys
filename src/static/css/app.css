@@ -798,3 +798,20 @@ body{
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(37,99,235,.15);
 }
+
+
+/* ==== Live badges (sidebar) ==== */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #ffe8a3;
+  color: #7a5200;
+  border: 1px solid #f4d57a;
+}
