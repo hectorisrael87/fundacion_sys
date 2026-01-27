@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 

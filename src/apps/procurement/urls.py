@@ -15,7 +15,9 @@ from apps.procurement.views import (
     cc_back_to_review,
     cc_approve_final,
     cc_back_to_draft,
-       # ops / print
+    cc_reject,
+
+    # ops / print
     cc_generate_ops,
     cc_print,
 
@@ -28,10 +30,10 @@ from apps.procurement.views import (
     # eliminar cuadro
     cc_delete,
 
-    # ✅ editar cabecera
+    # editar cabecera
     cc_edit_header,
 
-    # ✅ adjuntos
+    # adjuntos
     cc_attachment_upload,
     cc_attachment_delete,
 )
@@ -41,7 +43,7 @@ urlpatterns = [
     path("cuadros/nuevo/", cc_create, name="cc_create"),
     path("cuadros/<int:pk>/", cc_detail, name="cc_detail"),
 
-    # ✅ editar cabecera (Item/Proyecto/Expresado en)
+    # editar cabecera (Item/Proyecto/Expresado en)
     path("cuadros/<int:pk>/editar/", cc_edit_header, name="cc_edit_header"),
 
     # eliminar cuadro (listado)
@@ -66,8 +68,9 @@ urlpatterns = [
     path("cuadros/<int:pk>/marcar-revisado/", cc_mark_reviewed, name="cc_mark_reviewed"),
     path("cuadros/<int:pk>/devolver-revision/", cc_back_to_review, name="cc_back_to_review"),
     path("cuadros/<int:pk>/aprobar/", cc_approve_final, name="cc_approve_final"),
+    path("cuadros/<int:pk>/rechazar/", cc_reject, name="cc_reject"),
     path("cuadros/<int:pk>/borrador/", cc_back_to_draft, name="cc_back_to_draft"),
-   
+
     # generar ops
     path("cuadros/<int:pk>/generar-ops/", cc_generate_ops, name="cc_generate_ops"),
 
@@ -81,6 +84,4 @@ urlpatterns = [
 
     # imprimir
     path("cuadros/<int:pk>/imprimir/", cc_print, name="cc_print"),
-
-     path("cuadros/<int:pk>/rechazar/", views.cc_reject, name="cc_reject"),
 ]

@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -669,10 +669,6 @@ def cc_generate_ops(request, pk):
     if not (user.is_superuser or cc.creado_por_id == user.id):
         return HttpResponseForbidden("No tiene permisos para generar OPs desde este cuadro.")
 
-    # ...resto igual...
-
-    cc = get_object_or_404(ComparativeQuote, pk=pk)
-
     items = list(cc.items.select_related("producto").all())
     proveedores = list(cc.proveedores.select_related("proveedor").all())
 
@@ -702,7 +698,7 @@ def cc_generate_ops(request, pk):
         if faltan:
             messages.error(
                 request,
-                "No se puede generar OP: faltan precios en la matriz para: " + ", ".join(faltan)
+                "No se puede generar OP: faltan precios en la matriz para: " + ", ".join(faltan),
             )
             return redirect("cc_generate_ops", pk=pk)
 
