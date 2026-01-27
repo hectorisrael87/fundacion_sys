@@ -33,28 +33,43 @@ class ComparativeQuote(models.Model):
     # Revisor
     revisado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         on_delete=models.PROTECT,
         related_name="cc_revisados",
     )
     revisado_en = models.DateTimeField(null=True, blank=True)
 
-    # Aprobador (nuevo)
+    # Aprobador
     aprobado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         on_delete=models.PROTECT,
         related_name="cc_aprobados",
     )
     aprobado_en = models.DateTimeField(null=True, blank=True)
 
+    # ✅ Rechazo (Aprobador)
+    rechazado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="cc_rechazados",
+    )
+    rechazado_en = models.DateTimeField(null=True, blank=True)
+
     class Status(models.TextChoices):
         BORRADOR = "BORRADOR", "Borrador"
-        EN_REVISION = "EN_REVISION", "En revisión"        # Pendiente Revisión (para Revisor)
-        REVISADO = "REVISADO", "Revisado"                 # Pendiente Aprobación (para Aprobador)
+        EN_REVISION = "EN_REVISION", "En revisión"  # Pendiente Revisión (Revisor)
+        REVISADO = "REVISADO", "Revisado"           # Pendiente Aprobación (Aprobador)
         APROBADO = "APROBADO", "Aprobado"
+        RECHAZADO = "RECHAZADO", "Rechazado"
 
-    estado = models.CharField(max_length=20, choices=Status.choices, default=Status.BORRADOR)
+    estado = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.BORRADOR
+    )
 
     proveedor_seleccionado = models.ForeignKey(
         "procurement.ComparativeSupplier",
@@ -136,56 +151,8 @@ class ComparativeQuoteAttachment(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.nombre and self.archivo:
-            # usa el nombre del archivo si no se definió uno manual
             self.nombre = (getattr(self.archivo, "name", "") or "").split("/")[-1]
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.cuadro.number} - {self.nombre or 'adjunto'}"
-
-# ...imports...
-from django.conf import settings
-from django.db import models
-
-class ComparativeQuote(models.Model):
-    class Status(models.TextChoices):
-        BORRADOR = "BORRADOR", "Borrador"
-        EN_REVISION = "EN_REVISION", "En revisión"
-        REVISADO = "REVISADO", "Revisado"
-        APROBADO = "APROBADO", "Aprobado"
-        RECHAZADO = "RECHAZADO", "Rechazado"  # ✅ nuevo
-
-    estado = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.BORRADOR,
-    )
-
-    # ...campos existentes...
-    revisado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="cc_revisados",
-    )
-    revisado_en = models.DateTimeField(null=True, blank=True)
-
-    aprobado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="cc_aprobados",
-    )
-    aprobado_en = models.DateTimeField(null=True, blank=True)
-
-    # ✅ nuevos (rechazo)
-    rechazado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="cc_rechazados",
-    )
-    rechazado_en = models.DateTimeField(null=True, blank=True)
