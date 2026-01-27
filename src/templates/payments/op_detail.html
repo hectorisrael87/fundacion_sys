@@ -304,18 +304,20 @@
 
   </div>
 
-  {# Botones abajo (después de Registro) #}
+    {# Botones abajo (después de Registro) #}
   <div class="card">
     <div class="hstack">
       {% if op.estado == "BORRADOR" %}
         {% if op.creado_por_id == user.id or user.is_superuser %}
           <a class="btn btn-primary" href="{% url 'op_send_review' op.pk %}">📤 Enviar a revisión</a>
         {% endif %}
+
       {% elif op.estado == "EN_REVISION" %}
         {% if is_reviewer %}
           <a class="btn btn-primary" href="{% url 'op_mark_reviewed' op.pk %}">✅ Marcar como revisado</a>
           <a class="btn btn-ghost" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
         {% endif %}
+
       {% elif op.estado == "REVISADO" %}
         {% if is_approver and not is_reviewer %}
           <form method="post" action="{% url 'op_approve_final' op.pk %}" class="inline-form">
@@ -336,11 +338,17 @@
           </form>
         {% endif %}
 
+      {% elif op.estado == "APROBADO" %}
+        <span class="muted">✅ OP aprobada.</span>
+
+      {% elif op.estado == "RECHAZADO" %}
+        <span class="muted">❌ OP rechazada.</span>
+
+      {% endif %}
 
       <a class="btn btn-ghost" href="{% url 'op_list' %}">← Volver</a>
     </div>
   </div>
-
 </div>
 
 {% endblock %}
