@@ -320,7 +320,7 @@
 
       {% elif op.estado == "REVISADO" %}
         {% if is_approver and not is_reviewer %}
-          <form method="post" action="{% url 'op_approve_final' op.pk %}" class="inline-form">
+          <form method="post" action="{% url 'op_approve' op.pk %}" class="inline-form">
             {% csrf_token %}
             <button class="btn btn-primary" type="submit">✅ Aprobar</button>
           </form>
