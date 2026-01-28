@@ -9,6 +9,7 @@ urlpatterns = [
     path("<int:pk>/send-review/", views.op_send_review, name="op_send_review"),
     path("<int:pk>/mark-reviewed/", views.op_mark_reviewed, name="op_mark_reviewed"),
     path("<int:pk>/approve/", views.op_approve, name="op_approve"),
+    path("<int:pk>/approve-final/", views.op_approve, name="op_approve_final"),
     path("<int:pk>/back-to-draft/", views.op_back_to_draft, name="op_back_to_draft"),
     path("<int:pk>/back-to-review/", views.op_back_to_review, name="op_back_to_review"),
     path("<int:pk>/reject/", views.op_reject, name="op_reject"),

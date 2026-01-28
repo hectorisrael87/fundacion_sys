@@ -24,9 +24,10 @@
         {% endif %}
       </div>
 
-      {% if can_edit_cc %}
+      {% if cc_bloqueado %}
         <div class="muted mt-sm">🔒 Edición bloqueada.</div>
       {% endif %}
+
 
       <div class="mt-md">
         <div><b>Item cotizado:</b> {{ cc.item_cotizado }}</div>
@@ -342,9 +343,29 @@
     <h3 class="m0">Selección y flujo</h3>
 
     <div class="hstack mt-md">
-      {% if cc.estado == "BORRADOR" %}
+       {% if cc.estado == "BORRADOR" %}
         {% if user.is_superuser or cc.creado_por_id == user.id %}
-          <a class="btn btn-primary" href="{% url 'cc_send_review' cc.pk %}">📤 Enviar a revisión</a>
+
+          {% if not cc_ready_for_review %}
+            <div class="mt-sm muted">
+              <b>Antes de enviar a revisión, completa:</b>
+              <ul class="mt-xs">
+                {% if not cc_has_items %}<li>Productos</li>{% endif %}
+                {% if not cc_has_proveedores %}<li>Proveedores</li>{% endif %}
+                {% if not cc_matriz_completa %}<li>Precios y Totales (matriz completa)</li>{% endif %}
+                {% if not cc_has_selected_supplier %}<li>Proveedor seleccionado</li>{% endif %}
+                {% if not cc_has_motivo %}<li>Motivo</li>{% endif %}
+                {% if not cc_has_ops %}<li>Órdenes de pago generadas</li>{% endif %}
+              </ul>
+            </div>
+
+            <span class="btn btn-primary btn-sm" style="opacity:.5; pointer-events:none;">
+              📤 Enviar a revisión
+            </span>
+          {% else %}
+            <a class="btn btn-primary" href="{% url 'cc_send_review' cc.pk %}">📤 Enviar a revisión</a>
+          {% endif %}
+
         {% else %}
           <span class="muted">📝 En borrador (solo el creador puede enviar a revisión).</span>
         {% endif %}

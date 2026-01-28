@@ -207,6 +207,34 @@ def cc_detail(request, pk: int):
         )
     )
 
+    # =========================
+    # Checklist para enviar a revisión (validación UI)
+    # =========================
+    has_items = len(items) > 0
+    has_proveedores = len(proveedores) > 0
+    has_motivo = bool((cc.motivo_seleccion or "").strip())
+    has_selected_supplier = bool(cc.proveedor_seleccionado_id)
+    has_ops = cc.ordenes_pago.exists()
+
+    missing_matrix = []
+    matriz_completa = False
+    if has_items and has_proveedores:
+        for ps in proveedores:
+            for it in items:
+                pu = precios.get(ps.proveedor_id, {}).get(it.producto_id)
+                if pu is None:
+                    missing_matrix.append((ps.proveedor_id, it.producto_id))
+        matriz_completa = (len(missing_matrix) == 0)
+
+    cc_ready_for_review = all([
+        has_items,
+        has_proveedores,
+        matriz_completa,
+        has_selected_supplier,
+        has_motivo,
+        has_ops,
+    ])
+
     return render(
         request,
         "procurement/cc_detail.html",
@@ -229,8 +257,18 @@ def cc_detail(request, pk: int):
             "adjuntos": adjuntos,
             "attachment_form": ComparativeAttachmentForm(),
             "can_edit_docs": can_edit_docs,
+
+            # ✅ Flags checklist
+            "cc_has_items": has_items,
+            "cc_has_proveedores": has_proveedores,
+            "cc_matriz_completa": matriz_completa,
+            "cc_has_selected_supplier": has_selected_supplier,
+            "cc_has_motivo": has_motivo,
+            "cc_has_ops": has_ops,
+            "cc_ready_for_review": cc_ready_for_review,
         },
     )
+
 
 
 @login_required
@@ -608,6 +646,49 @@ def cc_send_review(request, pk):
         for e in errores:
             messages.error(request, e)
         return redirect("cc_detail", pk=cc.pk)
+
+    # =========================
+    # Validaciones obligatorias antes de enviar a revisión
+    # =========================
+    items = list(cc.items.select_related("producto").all())
+    proveedores = list(cc.proveedores.select_related("proveedor").all())
+
+    precios = defaultdict(dict)
+    for p in cc.precios.all():
+        precios[p.proveedor_id][p.producto_id] = p.precio_unit
+
+    faltantes = []
+
+    if len(items) == 0:
+        faltantes.append("• Agrega al menos un producto.")
+    if len(proveedores) == 0:
+        faltantes.append("• Agrega al menos un proveedor.")
+
+    # Matriz completa (si hay items y proveedores)
+    if len(items) > 0 and len(proveedores) > 0:
+        missing = 0
+        for ps in proveedores:
+            for it in items:
+                pu = precios.get(ps.proveedor_id, {}).get(it.producto_id)
+                if pu is None:
+                    missing += 1
+        if missing > 0:
+            faltantes.append("• Completa la matriz de precios (hay celdas sin precio).")
+
+    if not cc.proveedor_seleccionado_id:
+        faltantes.append("• Selecciona el proveedor ganador.")
+    if not (cc.motivo_seleccion or "").strip():
+        faltantes.append("• Completa el motivo de selección.")
+    if not cc.ordenes_pago.exists():
+        faltantes.append("• Genera la(s) orden(es) de pago antes de enviar a revisión.")
+
+    if faltantes:
+        messages.error(
+            request,
+            "No se puede enviar a revisión. Falta completar:\n" + "\n".join(faltantes)
+        )
+        return redirect("cc_detail", pk=cc.pk)
+
 
     # =========================
     # ✅ OK: pasar a EN_REVISION
