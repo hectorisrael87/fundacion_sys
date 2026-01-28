@@ -554,16 +554,64 @@ def cc_send_review(request, pk):
         messages.error(request, "No tienes permiso para enviar este cuadro a revisión.")
         return redirect("cc_detail", pk=pk)
 
-
     if cc.estado == ComparativeQuote.Status.APROBADO:
         messages.error(request, "Este cuadro ya está aprobado y no puede volver a revisión.")
         return redirect("cc_detail", pk=pk)
 
-   
     if cc.estado not in {ComparativeQuote.Status.BORRADOR, ComparativeQuote.Status.RECHAZADO}:
         messages.error(request, "Solo puedes enviar a revisión desde Borrador o Rechazado.")
         return redirect("cc_detail", pk=cc.pk)
 
+    # =========================
+    # ✅ VALIDACIONES (completo antes de revisión)
+    # Proveedores / Precios y Totales / Proveedor seleccionado / Motivo / OPs
+    # =========================
+    errores = []
+
+    items = list(cc.items.select_related("producto").all())
+    proveedores = list(cc.proveedores.select_related("proveedor").all())
+
+    if not items:
+        errores.append("Debes agregar al menos un producto.")
+    if not proveedores:
+        errores.append("Debes agregar al menos un proveedor.")
+
+    # Validar proveedor seleccionado + motivo
+    if not cc.proveedor_seleccionado_id:
+        errores.append("Debes seleccionar un proveedor ganador.")
+    if not (cc.motivo_seleccion or "").strip():
+        errores.append("Debes registrar el motivo de la selección.")
+
+    # Validar matriz completa (precio por cada proveedor y producto)
+    if items and proveedores:
+        existentes = set(
+            cc.precios.values_list("proveedor_id", "producto_id")
+        )
+        faltantes = []
+        for ps in proveedores:
+            for it in items:
+                key = (ps.proveedor_id, it.producto_id)
+                if key not in existentes:
+                    faltantes.append(f"{ps.proveedor.nombre_empresa} → {it.producto.nombre}")
+
+        if faltantes:
+            # Mostramos solo algunos para no saturar mensajes
+            preview = ", ".join(faltantes[:10])
+            extra = "" if len(faltantes) <= 10 else f" … (+{len(faltantes) - 10} más)"
+            errores.append(f"Faltan precios en la matriz para: {preview}{extra}")
+
+    # Validar que existan OPs generadas antes de enviar a revisión
+    if not cc.ordenes_pago.exists():
+        errores.append("Antes de enviar a revisión, genera la(s) órdenes de pago desde este cuadro.")
+
+    if errores:
+        for e in errores:
+            messages.error(request, e)
+        return redirect("cc_detail", pk=cc.pk)
+
+    # =========================
+    # ✅ OK: pasar a EN_REVISION
+    # =========================
     cc.estado = ComparativeQuote.Status.EN_REVISION
     cc.revisado_por = None
     cc.revisado_en = None
@@ -571,12 +619,19 @@ def cc_send_review(request, pk):
     cc.aprobado_en = None
     cc.rechazado_por = None
     cc.rechazado_en = None
-    cc.save(update_fields=[
-        "estado", "revisado_por", "revisado_en", "aprobado_por", "aprobado_en", "rechazado_por", "rechazado_en"
-    ])
+    cc.save(
+        update_fields=[
+            "estado",
+            "revisado_por",
+            "revisado_en",
+            "aprobado_por",
+            "aprobado_en",
+            "rechazado_por",
+            "rechazado_en",
+        ]
+    )
     messages.success(request, "Cuadro enviado a revisión.")
     return redirect("cc_detail", pk=cc.pk)
-
 
 @login_required
 def cc_mark_reviewed(request, pk):
@@ -737,17 +792,14 @@ def cc_generate_ops(request, pk):
 
         messages.success(request, f"Órdenes creadas: {', '.join([o.number for o in creadas_ops])}")
 
-        if len(creadas_ops) == 1:
-            return redirect("op_detail", pk=creadas_ops[0].pk)
-
-        return redirect("op_list")
+        # ✅ PASO A: volver siempre al CC (no te saca a otras pantallas)
+        return redirect("cc_detail", pk=cc.pk)
 
     return render(
         request,
         "procurement/cc_generate_ops.html",
         {"cc": cc, "items": items, "proveedores": proveedores},
     )
-
 
 @login_required
 def cc_print(request, pk: int):
