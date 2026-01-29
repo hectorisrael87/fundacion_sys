@@ -86,6 +86,7 @@ def op_list(request):
 @login_required
 def op_detail(request, pk: int):
     op = get_object_or_404(PaymentOrder, pk=pk)
+
     # =========================
     # Navegación guiada desde CC: OP1 -> OP2 -> ... -> volver al CC
     # =========================
@@ -127,7 +128,7 @@ def op_detail(request, pk: int):
     ):
         return HttpResponseForbidden("No tienes permiso para ver esta Orden de Pago.")
 
-        # Edición:
+    # Edición:
     # - Creador (o superuser): SOLO en BORRADOR
     # - Revisor (o superuser): SOLO en EN_REVISION (para correcciones)
     # - Aprobador: NO edita (solo aprueba cuando está REVISADO)
@@ -144,25 +145,16 @@ def op_detail(request, pk: int):
         )
     )
 
-
-    if request.method == "POST":
-        if not puede_editar:
-            return HttpResponseForbidden("No tienes permiso para editar esta Orden de Pago.")
-
-        form = PaymentOrderForm(request.POST, instance=op)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Orden de Pago actualizada.")
-            return redirect("op_detail", pk=op.pk)
-    else:
-        form = PaymentOrderForm(instance=op)
-
+    # Items (para totales)
     items_qs = op.items.select_related("producto").all()
 
     # Total calculado (por ítems)
     total = Decimal("0")
     for it in items_qs:
         total += (it.cantidad or Decimal("0")) * (it.precio_unit or Decimal("0"))
+
+    # Total calculado para mostrar como "Monto solicitado" en OP normal (no vacío)
+    total_calculado = total
 
     # Monto a pagar (respeta monto_manual)
     monto_a_pagar = op.monto_manual if op.monto_manual is not None else total
@@ -186,6 +178,33 @@ def op_detail(request, pk: int):
         and op.estado == PaymentOrder.Status.APROBADO
     )
 
+    # =========================
+    # Guardar / Guardar y enviar a revisión
+    # =========================
+    if request.method == "POST":
+        if not puede_editar:
+            return HttpResponseForbidden("No tienes permiso para editar esta Orden de Pago.")
+
+        action = request.POST.get("action", "save")  # save | send_review
+
+        form = PaymentOrderForm(request.POST, instance=op)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Orden de Pago actualizada.")
+
+            # ✅ Si se presionó "Enviar a revisión", primero guardamos y luego ejecutamos el flujo
+            if action == "send_review":
+                if return_cc_pk:
+                    return redirect(f"{reverse('op_send_review', kwargs={'pk': op.pk})}?return_cc={return_cc_pk}")
+                return redirect("op_send_review", pk=op.pk)
+
+            # Mantener return_cc en URL si aplica
+            if return_cc_pk:
+                return redirect(f"{reverse('op_detail', kwargs={'pk': op.pk})}?return_cc={return_cc_pk}")
+            return redirect("op_detail", pk=op.pk)
+
+    else:
+        form = PaymentOrderForm(instance=op)
 
     return render(
         request,
@@ -195,6 +214,7 @@ def op_detail(request, pk: int):
             "form": form,
             "items": items_qs,
             "total": total,
+            "total_calculado": total_calculado,  # ✅ para OP normal (Monto solicitado)
             "monto_a_pagar": monto_a_pagar,
             "monto_letras": monto_letras,
             "restante": restante,
@@ -207,6 +227,7 @@ def op_detail(request, pk: int):
             "next_op_pk": next_op_pk,
         },
     )
+
 
 
 # =========================
