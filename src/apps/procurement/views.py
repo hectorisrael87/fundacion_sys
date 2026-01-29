@@ -801,45 +801,51 @@ def cc_generate_ops(request, pk):
 
         creadas_ops = []
 
-        for proveedor_id, items_lista in asignados.items():
-            proveedor = Provider.objects.get(pk=proveedor_id)
+        with transaction.atomic():
+            for proveedor_id, items_lista in asignados.items():
+                proveedor = Provider.objects.get(pk=proveedor_id)
 
-            op = PaymentOrder.objects.create(
-                cuadro=cc,
-                proveedor=proveedor,
-                para="Maria Teresa Vargas",
-                cargo_para="Directora Ejecutiva",
-                de=request.user.get_full_name() or request.user.username,
-                cargo_de=getattr(getattr(request.user, "userprofile", None), "cargo", "") or "",
-                fecha_solicitud=timezone.localdate(),
-                proyecto="Uso Contable",
-                partida_contable="Uso Contable",
-                con_factura="Si",
-                efectivo="No",
-                descripcion=f"Orden generada desde {cc.number}",
-                creado_por=request.user,
-            )
-
-            for it in items_lista:
-                precio_unit = precios.get(proveedor_id, {}).get(it.producto_id, Decimal("0"))
-                PaymentOrderItem.objects.create(
-                    orden=op,
-                    producto=it.producto,
-                    unidad=it.unidad,
-                    cantidad=it.cantidad,
-                    precio_unit=precio_unit,
+                op = PaymentOrder.objects.create(
+                    cuadro=cc,
+                    proveedor=proveedor,
+                    para="Maria Teresa Vargas",
+                    cargo_para="Directora Ejecutiva",
+                    de=request.user.get_full_name() or request.user.username,
+                    cargo_de=getattr(getattr(request.user, "userprofile", None), "cargo", "") or "",
+                    fecha_solicitud=timezone.localdate(),
+                    proyecto="Uso Contable",
+                    partida_contable="Uso Contable",
+                    con_factura="Si",
+                    efectivo="No",
+                    # ✅ IMPORTANTE: ya NO ponemos texto automático
+                    descripcion="",
+                    creado_por=request.user,
                 )
 
-           # ✅ Si se creó al menos una OP, entrar a la primera para completar
+                for it in items_lista:
+                    precio_unit = precios.get(proveedor_id, {}).get(it.producto_id, Decimal("0"))
+                    PaymentOrderItem.objects.create(
+                        orden=op,
+                        producto=it.producto,
+                        unidad=it.unidad,
+                        cantidad=it.cantidad,
+                        precio_unit=precio_unit,
+                    )
+
+                # ✅ CLAVE: guardar la OP creada
+                creadas_ops.append(op)
+
+        if not creadas_ops:
+            messages.error(request, "No se pudo generar ninguna Orden de Pago.")
+            return redirect("cc_detail", pk=cc.pk)
+
+        # ✅ PASO A: entrar a la primera OP para completar y navegar OP1 -> OP2 -> volver al CC
         creadas_ops.sort(key=lambda x: x.id)
         first_op = creadas_ops[0]
 
         url = reverse("op_detail", kwargs={"pk": first_op.pk})
         qs = urlencode({"return_cc": cc.pk})
         return redirect(f"{url}?{qs}")
-
-        # ✅ PASO A: volver siempre al CC (no te saca a otras pantallas)
-        return redirect("cc_detail", pk=cc.pk)
 
     return render(
         request,

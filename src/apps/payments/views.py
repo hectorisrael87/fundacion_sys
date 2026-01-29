@@ -217,11 +217,10 @@ def op_detail(request, pk: int):
 def op_send_review(request, pk: int):
     op = get_object_or_404(PaymentOrder, pk=pk)
 
-   # Solo creador (o superuser) puede enviar a revisión
+    # Solo creador (o superuser) puede enviar a revisión
     if not (request.user.is_superuser or op.creado_por_id == request.user.id):
         messages.error(request, "No tienes permiso para enviar esta OP a revisión.")
         return redirect("op_detail", pk=pk)
-
 
     # No puede moverse si ya está aprobada
     if op.estado == PaymentOrder.Status.APROBADO:
@@ -232,6 +231,48 @@ def op_send_review(request, pk: int):
         messages.error(request, "Solo puedes enviar a revisión desde Borrador o Rechazado.")
         return redirect("op_detail", pk=op.pk)
 
+    # =========================
+    # ✅ VALIDACIONES antes de pasar a EN_REVISION
+    # - Descripción obligatoria
+    # - Monto:
+    #   * OP normal: puede ir vacío (usa total por ítems)
+    #   * OP parcial: requiere monto_manual > 0 y <= total
+    # =========================
+    errores = []
+
+    # Descripción obligatoria
+    if not (op.descripcion or "").strip():
+        errores.append("Debes registrar la DESCRIPCIÓN antes de enviar a revisión.")
+
+    # Total por ítems
+    items = list(op.items.all())
+    total = Decimal("0")
+    for it in items:
+        total += (it.cantidad or Decimal("0")) * (it.precio_unit or Decimal("0"))
+
+    # Validación de monto según escenario
+    if op.es_parcial:
+        # Pago parcial/variable: monto_manual obligatorio
+        if op.monto_manual is None:
+            errores.append("Esta OP es PAGO PARCIAL: debes registrar el MONTO antes de enviar a revisión.")
+        else:
+            if op.monto_manual <= 0:
+                errores.append("El MONTO del pago parcial debe ser mayor a 0.")
+            if total > 0 and op.monto_manual > total:
+                errores.append("El MONTO del pago parcial no puede ser mayor al TOTAL de la orden.")
+    else:
+        # OP normal: si no hay ítems y tampoco monto_manual, no hay base para pagar
+        if total <= 0 and op.monto_manual is None:
+            errores.append("Debes tener ítems con total mayor a 0 o registrar un MONTO antes de enviar a revisión.")
+
+    if errores:
+        for e in errores:
+            messages.error(request, e)
+        return redirect("op_detail", pk=op.pk)
+
+    # =========================
+    # ✅ OK: pasar a EN_REVISION
+    # =========================
     op.estado = PaymentOrder.Status.EN_REVISION
     op.revisado_por = None
     op.revisado_en = None
@@ -240,11 +281,15 @@ def op_send_review(request, pk: int):
     op.rechazado_por = None
     op.rechazado_en = None
     op.save(update_fields=[
-        "estado", "revisado_por", "revisado_en", "aprobado_por", "aprobado_en", "rechazado_por", "rechazado_en"
+        "estado",
+        "revisado_por", "revisado_en",
+        "aprobado_por", "aprobado_en",
+        "rechazado_por", "rechazado_en",
     ])
 
     messages.success(request, "OP enviada a revisión.")
     return redirect("op_detail", pk=pk)
+
 
 
 @login_required
