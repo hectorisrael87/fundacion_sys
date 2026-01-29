@@ -602,7 +602,7 @@ def cc_send_review(request, pk):
 
     # =========================
     # ✅ VALIDACIONES (completo antes de revisión)
-    # Proveedores / Precios y Totales / Proveedor seleccionado / Motivo / OPs
+    # Proveedores / Precios y Totales / Proveedor seleccionado / Motivo
     # =========================
     errores = []
 
@@ -622,9 +622,7 @@ def cc_send_review(request, pk):
 
     # Validar matriz completa (precio por cada proveedor y producto)
     if items and proveedores:
-        existentes = set(
-            cc.precios.values_list("proveedor_id", "producto_id")
-        )
+        existentes = set(cc.precios.values_list("proveedor_id", "producto_id"))
         faltantes = []
         for ps in proveedores:
             for it in items:
@@ -633,62 +631,24 @@ def cc_send_review(request, pk):
                     faltantes.append(f"{ps.proveedor.nombre_empresa} → {it.producto.nombre}")
 
         if faltantes:
-            # Mostramos solo algunos para no saturar mensajes
             preview = ", ".join(faltantes[:10])
             extra = "" if len(faltantes) <= 10 else f" … (+{len(faltantes) - 10} más)"
             errores.append(f"Faltan precios en la matriz para: {preview}{extra}")
-
-    # Validar que existan OPs generadas antes de enviar a revisión
-    if not cc.ordenes_pago.exists():
-        errores.append("Antes de enviar a revisión, genera la(s) órdenes de pago desde este cuadro.")
 
     if errores:
         for e in errores:
             messages.error(request, e)
         return redirect("cc_detail", pk=cc.pk)
 
-    # =========================
-    # Validaciones obligatorias antes de enviar a revisión
-    # =========================
-    items = list(cc.items.select_related("producto").all())
-    proveedores = list(cc.proveedores.select_related("proveedor").all())
-
-    precios = defaultdict(dict)
-    for p in cc.precios.all():
-        precios[p.proveedor_id][p.producto_id] = p.precio_unit
-
-    faltantes = []
-
-    if len(items) == 0:
-        faltantes.append("• Agrega al menos un producto.")
-    if len(proveedores) == 0:
-        faltantes.append("• Agrega al menos un proveedor.")
-
-    # Matriz completa (si hay items y proveedores)
-    if len(items) > 0 and len(proveedores) > 0:
-        missing = 0
-        for ps in proveedores:
-            for it in items:
-                pu = precios.get(ps.proveedor_id, {}).get(it.producto_id)
-                if pu is None:
-                    missing += 1
-        if missing > 0:
-            faltantes.append("• Completa la matriz de precios (hay celdas sin precio).")
-
-    if not cc.proveedor_seleccionado_id:
-        faltantes.append("• Selecciona el proveedor ganador.")
-    if not (cc.motivo_seleccion or "").strip():
-        faltantes.append("• Completa el motivo de selección.")
+    # ✅ FLUJO (PASO A):
+    # Si aún no hay OPs, mandamos a generar OPs primero (y luego vuelve al CC).
     if not cc.ordenes_pago.exists():
-        faltantes.append("• Genera la(s) orden(es) de pago antes de enviar a revisión.")
-
-    if faltantes:
-        messages.error(
+        messages.info(
             request,
-            "No se puede enviar a revisión. Falta completar:\n" + "\n".join(faltantes)
+            "Antes de enviar a revisión, genera la(s) órdenes de pago. "
+            "Cuando termines, vuelve al cuadro y haz clic nuevamente en “Enviar a revisión”."
         )
-        return redirect("cc_detail", pk=cc.pk)
-
+        return redirect("cc_generate_ops", pk=cc.pk)
 
     # =========================
     # ✅ OK: pasar a EN_REVISION
