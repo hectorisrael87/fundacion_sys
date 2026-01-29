@@ -238,42 +238,34 @@ def op_detail(request, pk: int):
 def op_send_review(request, pk: int):
     op = get_object_or_404(PaymentOrder, pk=pk)
 
+    return_cc = request.GET.get("return_cc")
+    return_cc_pk = int(return_cc) if (return_cc and return_cc.isdigit()) else None
+
     # Solo creador (o superuser) puede enviar a revisión
     if not (request.user.is_superuser or op.creado_por_id == request.user.id):
         messages.error(request, "No tienes permiso para enviar esta OP a revisión.")
         return redirect("op_detail", pk=pk)
 
-    # No puede moverse si ya está aprobada
     if op.estado == PaymentOrder.Status.APROBADO:
         messages.error(request, "La OP ya está aprobada y no puede volver a revisión.")
-        return redirect("op_detail", pk=pk)
+        return redirect("op_detail", pk=op.pk)
 
     if op.estado not in {PaymentOrder.Status.BORRADOR, PaymentOrder.Status.RECHAZADO}:
         messages.error(request, "Solo puedes enviar a revisión desde Borrador o Rechazado.")
         return redirect("op_detail", pk=op.pk)
 
-    # =========================
-    # ✅ VALIDACIONES antes de pasar a EN_REVISION
-    # - Descripción obligatoria
-    # - Monto:
-    #   * OP normal: puede ir vacío (usa total por ítems)
-    #   * OP parcial: requiere monto_manual > 0 y <= total
-    # =========================
+    # ✅ VALIDACIONES (las tuyas)
     errores = []
 
-    # Descripción obligatoria
     if not (op.descripcion or "").strip():
         errores.append("Debes registrar la DESCRIPCIÓN antes de enviar a revisión.")
 
-    # Total por ítems
     items = list(op.items.all())
     total = Decimal("0")
     for it in items:
         total += (it.cantidad or Decimal("0")) * (it.precio_unit or Decimal("0"))
 
-    # Validación de monto según escenario
     if op.es_parcial:
-        # Pago parcial/variable: monto_manual obligatorio
         if op.monto_manual is None:
             errores.append("Esta OP es PAGO PARCIAL: debes registrar el MONTO antes de enviar a revisión.")
         else:
@@ -282,18 +274,18 @@ def op_send_review(request, pk: int):
             if total > 0 and op.monto_manual > total:
                 errores.append("El MONTO del pago parcial no puede ser mayor al TOTAL de la orden.")
     else:
-        # OP normal: si no hay ítems y tampoco monto_manual, no hay base para pagar
         if total <= 0 and op.monto_manual is None:
             errores.append("Debes tener ítems con total mayor a 0 o registrar un MONTO antes de enviar a revisión.")
 
     if errores:
         for e in errores:
             messages.error(request, e)
+        # preservar return_cc al volver
+        if return_cc_pk:
+            return redirect(f"{reverse('op_detail', kwargs={'pk': op.pk})}?return_cc={return_cc_pk}")
         return redirect("op_detail", pk=op.pk)
 
-    # =========================
     # ✅ OK: pasar a EN_REVISION
-    # =========================
     op.estado = PaymentOrder.Status.EN_REVISION
     op.revisado_por = None
     op.revisado_en = None
@@ -309,7 +301,13 @@ def op_send_review(request, pk: int):
     ])
 
     messages.success(request, "OP enviada a revisión.")
-    return redirect("op_detail", pk=pk)
+
+    # ✅ Si venías desde un CC, volver al CC (para seguir el “círculo”)
+    if return_cc_pk and op.cuadro_id == return_cc_pk:
+        return redirect("cc_detail", pk=return_cc_pk)
+
+    return redirect("op_detail", pk=op.pk)
+
 
 
 

@@ -152,25 +152,17 @@
 
         <div class="field"></div>
       </div>
-
+    </div>
+    <div class="field" style="grid-column: 1 / -1;">
+      <div class="label">Descripción</div>
       {% if puede_editar %}
-        <div class="mt-md">
-          <button class="btn btn-primary" type="submit">💾 Guardar cambios</button>
-        </div>
+        {{ form.descripcion }}
+        {{ form.descripcion.errors }}
+      {% else %}
+        <div class="control control-static">{{ op.descripcion|default:"-" }}</div>
       {% endif %}
     </div>
-
-    <div class="card">
-      <h3 class="m0">Descripción</h3>
-      <div class="mt-sm">
-        {% if puede_editar %}
-          {{ form.descripcion }}
-          {{ form.descripcion.errors }}
-        {% else %}
-          <div class="prewrap">{{ op.descripcion|default:"-" }}</div>
-        {% endif %}
-      </div>
-    </div>
+    
 
     <div class="card">
       <h3 class="m0">Detalle (Ítems)</h3>
@@ -272,7 +264,6 @@
         <p><b>Nro. Cuenta:</b> {{ op.proveedor.nro_cuenta|default:"-" }}</p>
       </div>
     </div>
-
   </form>
 
   <div class="card kv">
@@ -308,67 +299,68 @@
     {% endif %}
 
   </div>
+  {# Botones abajo (después de Registro) - ÚNICO bloque #}
+  <div class="card">
+    <div class="hstack">
 
-   {# Botones abajo (después de Registro) #}
-<div class="card">
-  <div class="hstack">
+      {# ===== CREADOR (BORRADOR): guarda y opcionalmente envía a revisión (mismo form) ===== #}
+      {% if op.estado == "BORRADOR" and (op.creado_por_id == user.id or user.is_superuser) and puede_editar %}
+        <button class="btn btn-ghost" type="submit" name="action" value="save">
+          💾 Guardar
+        </button>
 
-    {% if op.estado == "BORRADOR" %}
-      {% if op.creado_por_id == user.id or user.is_superuser %}
-        <form method="post" action="{% url 'op_send_review' op.pk %}" class="inline-form">
-          {% csrf_token %}
-          <button class="btn btn-primary" type="submit">
-            📤 Enviar a revisión
-          </button>
-        </form>
+        <button class="btn btn-primary" type="submit" name="action" value="send_review">
+          📤 Guardar y enviar a revisión
+        </button>
       {% endif %}
 
-    {% elif op.estado == "EN_REVISION" %}
-      {% if is_reviewer %}
+      {# ===== REVISOR (EN_REVISION): acciones por URL (no POST) ===== #}
+      {% if op.estado == "EN_REVISION" and is_reviewer %}
         <a class="btn btn-primary" href="{% url 'op_mark_reviewed' op.pk %}">✅ Marcar como revisado</a>
         <a class="btn btn-ghost" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
       {% endif %}
 
-    {% elif op.estado == "REVISADO" %}
-      {% if is_approver and not is_reviewer %}
-        <form method="post" action="{% url 'op_approve' op.pk %}" class="inline-form">
-          {% csrf_token %}
-          <button class="btn btn-primary" type="submit">✅ Aprobar</button>
-        </form>
+      {# ===== APROBADOR (REVISADO): POST sin forms anidados usando formaction ===== #}
+      {% if op.estado == "REVISADO" and is_approver and not is_reviewer %}
+        <button class="btn btn-primary" type="submit"
+                formaction="{% url 'op_approve' op.pk %}" formmethod="post">
+          ✅ Aprobar
+        </button>
 
-        <form method="post" action="{% url 'op_back_to_review' op.pk %}" class="inline-form">
-          {% csrf_token %}
-          <button class="btn btn-ghost" type="submit">↩️ Devolver a revisión</button>
-        </form>
+        <button class="btn btn-ghost" type="submit"
+                formaction="{% url 'op_back_to_review' op.pk %}" formmethod="post">
+          ↩️ Devolver a revisión
+        </button>
 
-        <form method="post" action="{% url 'op_reject' op.pk %}" class="inline-form">
-          {% csrf_token %}
-          <button class="btn btn-danger" type="submit"
-            onclick="return confirm('¿Rechazar la OP {{ op.number }}?');"
-          >❌ Rechazar</button>
-        </form>
+        <button class="btn btn-danger" type="submit"
+                formaction="{% url 'op_reject' op.pk %}" formmethod="post"
+                onclick="return confirm('¿Rechazar la OP {{ op.number }}?');">
+          ❌ Rechazar
+        </button>
       {% endif %}
 
-    {% elif op.estado == "APROBADO" %}
-      <span class="muted">✅ OP aprobada.</span>
-
-    {% elif op.estado == "RECHAZADO" %}
-      <span class="muted">❌ OP rechazada.</span>
-    {% endif %}
-
-    {% if return_cc_pk %}
-      <a class="btn btn-ghost" href="{% url 'cc_detail' return_cc_pk %}">← Volver al cuadro</a>
-
-      {% if next_op_pk %}
-        <a class="btn btn-primary" href="{% url 'op_detail' next_op_pk %}?return_cc={{ return_cc_pk }}">Siguiente orden →</a>
-      {% else %}
-        <a class="btn btn-primary" href="{% url 'cc_detail' return_cc_pk %}">✓ Terminar y volver al cuadro</a>
+      {% if op.estado == "APROBADO" %}
+        <span class="muted">✅ OP aprobada.</span>
+      {% elif op.estado == "RECHAZADO" %}
+        <span class="muted">❌ OP rechazada.</span>
       {% endif %}
-    {% endif %}
 
-    <a class="btn btn-ghost" href="{% url 'op_list' %}">← Volver</a>
+      {# ===== Navegación del “círculo” (CC -> OP1 -> OP2 -> CC) ===== #}
+      {% if return_cc_pk %}
+        <a class="btn btn-ghost" href="{% url 'cc_detail' return_cc_pk %}">← Volver al cuadro</a>
+
+        {% if next_op_pk %}
+          <a class="btn btn-primary"
+            href="{% url 'op_detail' next_op_pk %}?return_cc={{ return_cc_pk }}">Siguiente orden →</a>
+        {% else %}
+          <a class="btn btn-primary" href="{% url 'cc_detail' return_cc_pk %}">✓ Terminar y volver al cuadro</a>
+        {% endif %}
+      {% endif %}
+
+      <a class="btn btn-ghost" href="{% url 'op_list' %}">← Volver</a>
+    </div>
   </div>
-</div>
+
 
 </div>
 
