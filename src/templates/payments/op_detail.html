@@ -304,16 +304,17 @@
     <div class="hstack">
 
       {# ===== CREADOR (BORRADOR): guarda y opcionalmente envía a revisión (mismo form) ===== #}
-      {% if op.estado == "BORRADOR" and (op.creado_por_id == user.id or user.is_superuser) and puede_editar %}
-        <button class="btn btn-ghost" type="submit" name="action" value="save">
-          💾 Guardar
-        </button>
+      {% if op.estado == "BORRADOR" and puede_editar %}
+        {% if op.creado_por_id == user.id or user.is_superuser %}
+          <button class="btn btn-ghost" type="submit" name="action" value="save">
+            💾 Guardar
+          </button>
 
-        <button class="btn btn-primary" type="submit" name="action" value="send_review">
-          📤 Guardar y enviar a revisión
-        </button>
+          <button class="btn btn-primary" type="submit" name="action" value="send_review">
+            📤 Guardar y enviar a revisión
+          </button>
+        {% endif %}
       {% endif %}
-
       {# ===== REVISOR (EN_REVISION): acciones por URL (no POST) ===== #}
       {% if op.estado == "EN_REVISION" and is_reviewer %}
         <a class="btn btn-primary" href="{% url 'op_mark_reviewed' op.pk %}">✅ Marcar como revisado</a>
