@@ -22,7 +22,8 @@ from .forms import (
     ComparativeAttachmentForm,
 )
 from .models import ComparativeQuote, ComparativeQuoteAttachment
-
+from django.urls import reverse
+from urllib.parse import urlencode
 
 LOCKED_CC_STATES = {ComparativeQuote.Status.APROBADO, ComparativeQuote.Status.RECHAZADO}
 
@@ -829,9 +830,13 @@ def cc_generate_ops(request, pk):
                     precio_unit=precio_unit,
                 )
 
-            creadas_ops.append(op)
+           # ✅ Si se creó al menos una OP, entrar a la primera para completar
+        creadas_ops.sort(key=lambda x: x.id)
+        first_op = creadas_ops[0]
 
-        messages.success(request, f"Órdenes creadas: {', '.join([o.number for o in creadas_ops])}")
+        url = reverse("op_detail", kwargs={"pk": first_op.pk})
+        qs = urlencode({"return_cc": cc.pk})
+        return redirect(f"{url}?{qs}")
 
         # ✅ PASO A: volver siempre al CC (no te saca a otras pantallas)
         return redirect("cc_detail", pk=cc.pk)

@@ -345,7 +345,16 @@
         <span class="muted">❌ OP rechazada.</span>
 
       {% endif %}
+      {% if return_cc_pk %}
+        <a class="btn btn-ghost" href="{% url 'cc_detail' return_cc_pk %}">← Volver al cuadro</a>
 
+        {% if next_op_pk %}
+          <a class="btn btn-primary" href="{% url 'op_detail' next_op_pk %}?return_cc={{ return_cc_pk }}">Siguiente orden →</a>
+        {% else %}
+          <a class="btn btn-primary" href="{% url 'cc_detail' return_cc_pk %}">✓ Terminar y volver al cuadro</a>
+        {% endif %}
+      {% endif %}
+    
       <a class="btn btn-ghost" href="{% url 'op_list' %}">← Volver</a>
     </div>
   </div>

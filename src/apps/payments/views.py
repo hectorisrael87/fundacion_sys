@@ -86,6 +86,30 @@ def op_list(request):
 @login_required
 def op_detail(request, pk: int):
     op = get_object_or_404(PaymentOrder, pk=pk)
+    # =========================
+    # Navegación guiada desde CC: OP1 -> OP2 -> ... -> volver al CC
+    # =========================
+    return_cc_pk = None
+    next_op_pk = None
+
+    raw_return_cc = request.GET.get("return_cc")
+    if raw_return_cc and raw_return_cc.isdigit():
+        return_cc_pk = int(raw_return_cc)
+
+        # seguridad: solo si coincide con el CC real de esta OP
+        if op.cuadro_id == return_cc_pk:
+            op_ids = list(op.cuadro.ordenes_pago.order_by("id").values_list("id", flat=True))
+            try:
+                idx = op_ids.index(op.id)
+                if idx < len(op_ids) - 1:
+                    next_op_pk = op_ids[idx + 1]
+            except ValueError:
+                pass
+        else:
+            # si no coincide, ignoramos navegación
+            return_cc_pk = None
+            next_op_pk = None
+
     # Si está en BORRADOR, solo el creador o superuser pueden verlo
     if op.estado == PaymentOrder.Status.BORRADOR and not (
         request.user.is_superuser or op.creado_por_id == request.user.id
@@ -179,6 +203,8 @@ def op_detail(request, pk: int):
             "puede_editar": puede_editar,
             "is_reviewer": (request.user.is_superuser or is_reviewer(request.user)),
             "is_approver": (request.user.is_superuser or is_approver(request.user)),
+            "return_cc_pk": return_cc_pk,
+            "next_op_pk": next_op_pk,
         },
     )
 
