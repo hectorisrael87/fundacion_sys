@@ -93,7 +93,7 @@ def op_detail(request, pk: int):
     return_cc_pk = None
     next_op_pk = None
 
-    raw_return_cc = request.GET.get("return_cc")
+    raw_return_cc = request.GET.get("return_cc") or request.POST.get("return_cc")
     if raw_return_cc and raw_return_cc.isdigit():
         return_cc_pk = int(raw_return_cc)
 
@@ -185,20 +185,34 @@ def op_detail(request, pk: int):
         if not puede_editar:
             return HttpResponseForbidden("No tienes permiso para editar esta Orden de Pago.")
 
-        action = request.POST.get("action", "save")  # save | send_review
+        action = request.POST.get("action", "save")  # save | send_review | save_next | save_return_cc
 
         form = PaymentOrderForm(request.POST, instance=op)
         if form.is_valid():
             form.save()
             messages.success(request, "Orden de Pago actualizada.")
 
-            # ✅ Si se presionó "Enviar a revisión", primero guardamos y luego ejecutamos el flujo
+            # 1) Guardar y enviar a revisión (solo si NO estás en círculo)
             if action == "send_review":
                 if return_cc_pk:
-                    return redirect(f"{reverse('op_send_review', kwargs={'pk': op.pk})}?return_cc={return_cc_pk}")
+                    messages.error(request, "Esta OP se está completando desde el Cuadro. Envía a revisión desde el Cuadro.")
+                    return redirect(f"{reverse('op_detail', kwargs={'pk': op.pk})}?return_cc={return_cc_pk}")
                 return redirect("op_send_review", pk=op.pk)
 
-            # Mantener return_cc en URL si aplica
+            # 2) Guardar y siguiente OP (círculo)
+            if action == "save_next":
+                nxt = request.POST.get("next_op_pk")
+                if nxt and nxt.isdigit():
+                    if return_cc_pk:
+                        return redirect(f"{reverse('op_detail', kwargs={'pk': int(nxt)})}?return_cc={return_cc_pk}")
+                    return redirect("op_detail", pk=int(nxt))
+
+            # 3) Guardar y volver al cuadro (círculo)
+            if action == "save_return_cc":
+                if return_cc_pk and op.cuadro_id == return_cc_pk:
+                    return redirect("cc_detail", pk=return_cc_pk)
+
+            # 4) Guardar normal
             if return_cc_pk:
                 return redirect(f"{reverse('op_detail', kwargs={'pk': op.pk})}?return_cc={return_cc_pk}")
             return redirect("op_detail", pk=op.pk)

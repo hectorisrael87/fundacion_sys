@@ -58,8 +58,17 @@
     </div>
   </div>
 
-  <form method="post" class="stack">
+  <form method="post"
+        class="stack"
+        action="{% url 'op_detail' op.pk %}{% if return_cc_pk %}?return_cc={{ return_cc_pk }}{% endif %}">
     {% csrf_token %}
+    {% if return_cc_pk %}
+      <input type="hidden" name="return_cc" value="{{ return_cc_pk }}">
+    {% endif %}
+    {% if next_op_pk %}
+      <input type="hidden" name="next_op_pk" value="{{ next_op_pk }}">
+    {% endif %}
+
 
     <div class="card">
       <h3 class="m0">Datos de la orden</h3>
@@ -264,104 +273,119 @@
         <p><b>Nro. Cuenta:</b> {{ op.proveedor.nro_cuenta|default:"-" }}</p>
       </div>
     </div>
-  </form>
+    <div class="card kv">
+      <h3 class="m0">Registro</h3>
 
-  <div class="card kv">
-    <h3 class="m0">Registro</h3>
+      <p>
+        <b>Creado por:</b> {{ op.creado_por.get_full_name|default:op.creado_por.username }}
+        {% if op.creado_en %} ({{ op.creado_en|date:"d/m/Y H:i" }}){% endif %}
+      </p>
 
-    <p>
-      <b>Creado por:</b> {{ op.creado_por.get_full_name|default:op.creado_por.username }}
-      {% if op.creado_en %} ({{ op.creado_en|date:"d/m/Y H:i" }}){% endif %}
-    </p>
-
-    <p>
-      <b>Revisado por:</b>
-      {% if op.revisado_por %}
-        {{ op.revisado_por.get_full_name|default:op.revisado_por.username }}
-        {% if op.revisado_en %} ({{ op.revisado_en|date:"d/m/Y H:i" }}){% endif %}
-      {% else %}
-        —
-      {% endif %}
-    </p>
-
-    <p>
-      <b>Aprobado por:</b>
-      {% if op.aprobado_por %}
-        {{ op.aprobado_por.get_full_name|default:op.aprobado_por.username }}
-        {% if op.aprobado_en %} ({{ op.aprobado_en|date:"d/m/Y H:i" }}){% endif %}
-      {% else %}
-        —
-      {% endif %}
-    </p>
-    {% if op.rechazado_por and op.rechazado_en %}
-      <p><b>Rechazado por:</b> {{ op.rechazado_por.get_full_name|default:op.rechazado_por.username }}</p>
-      <p><b>Rechazado en:</b> {{ op.rechazado_en|date:"d/m/Y H:i" }}</p>
-    {% endif %}
-
-  </div>
-  {# Botones abajo (después de Registro) - ÚNICO bloque #}
-  <div class="card">
-    <div class="hstack">
-
-      {# ===== CREADOR (BORRADOR): guarda y opcionalmente envía a revisión (mismo form) ===== #}
-      {% if op.estado == "BORRADOR" and puede_editar %}
-        {% if op.creado_por_id == user.id or user.is_superuser %}
-          <button class="btn btn-ghost" type="submit" name="action" value="save">
-            💾 Guardar
-          </button>
-
-          <button class="btn btn-primary" type="submit" name="action" value="send_review">
-            📤 Guardar y enviar a revisión
-          </button>
-        {% endif %}
-      {% endif %}
-      {# ===== REVISOR (EN_REVISION): acciones por URL (no POST) ===== #}
-      {% if op.estado == "EN_REVISION" and is_reviewer %}
-        <a class="btn btn-primary" href="{% url 'op_mark_reviewed' op.pk %}">✅ Marcar como revisado</a>
-        <a class="btn btn-ghost" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
-      {% endif %}
-
-      {# ===== APROBADOR (REVISADO): POST sin forms anidados usando formaction ===== #}
-      {% if op.estado == "REVISADO" and is_approver and not is_reviewer %}
-        <button class="btn btn-primary" type="submit"
-                formaction="{% url 'op_approve' op.pk %}" formmethod="post">
-          ✅ Aprobar
-        </button>
-
-        <button class="btn btn-ghost" type="submit"
-                formaction="{% url 'op_back_to_review' op.pk %}" formmethod="post">
-          ↩️ Devolver a revisión
-        </button>
-
-        <button class="btn btn-danger" type="submit"
-                formaction="{% url 'op_reject' op.pk %}" formmethod="post"
-                onclick="return confirm('¿Rechazar la OP {{ op.number }}?');">
-          ❌ Rechazar
-        </button>
-      {% endif %}
-
-      {% if op.estado == "APROBADO" %}
-        <span class="muted">✅ OP aprobada.</span>
-      {% elif op.estado == "RECHAZADO" %}
-        <span class="muted">❌ OP rechazada.</span>
-      {% endif %}
-
-      {# ===== Navegación del “círculo” (CC -> OP1 -> OP2 -> CC) ===== #}
-      {% if return_cc_pk %}
-        <a class="btn btn-ghost" href="{% url 'cc_detail' return_cc_pk %}">← Volver al cuadro</a>
-
-        {% if next_op_pk %}
-          <a class="btn btn-primary"
-            href="{% url 'op_detail' next_op_pk %}?return_cc={{ return_cc_pk }}">Siguiente orden →</a>
+      <p>
+        <b>Revisado por:</b>
+        {% if op.revisado_por %}
+          {{ op.revisado_por.get_full_name|default:op.revisado_por.username }}
+          {% if op.revisado_en %} ({{ op.revisado_en|date:"d/m/Y H:i" }}){% endif %}
         {% else %}
-          <a class="btn btn-primary" href="{% url 'cc_detail' return_cc_pk %}">✓ Terminar y volver al cuadro</a>
+          —
         {% endif %}
+      </p>
+
+      <p>
+        <b>Aprobado por:</b>
+        {% if op.aprobado_por %}
+          {{ op.aprobado_por.get_full_name|default:op.aprobado_por.username }}
+          {% if op.aprobado_en %} ({{ op.aprobado_en|date:"d/m/Y H:i" }}){% endif %}
+        {% else %}
+          —
+        {% endif %}
+      </p>
+      {% if op.rechazado_por and op.rechazado_en %}
+        <p><b>Rechazado por:</b> {{ op.rechazado_por.get_full_name|default:op.rechazado_por.username }}</p>
+        <p><b>Rechazado en:</b> {{ op.rechazado_en|date:"d/m/Y H:i" }}</p>
       {% endif %}
 
-      <a class="btn btn-ghost" href="{% url 'op_list' %}">← Volver</a>
     </div>
-  </div>
+    {# Botones abajo (después de Registro) - ÚNICO bloque #}
+    <div class="card">
+      <div class="hstack">
 
+        {# ===== CREADOR (BORRADOR) ===== #}
+        {% if op.estado == "BORRADOR" and puede_editar %}
+          {% if op.creado_por_id == user.id or user.is_superuser %}
+
+            {# Siempre se puede guardar #}
+            <button class="btn btn-ghost" type="submit" name="action" value="save">
+              💾 Guardar
+            </button>
+
+            {# Si venimos desde el CC: usamos círculo guiado (guardar + siguiente / volver) #}
+            {% if return_cc_pk %}
+              {% if next_op_pk %}
+                <button class="btn btn-primary" type="submit" name="action" value="save_next">
+                  💾 Guardar y siguiente →
+                </button>
+              {% else %}
+                <button class="btn btn-primary" type="submit" name="action" value="save_return_cc">
+                  ✓ Guardar y volver al cuadro
+                </button>
+              {% endif %}
+            {% else %}
+              {# Si NO venimos del CC, sí permitimos enviar a revisión desde la OP #}
+              <button class="btn btn-primary" type="submit" name="action" value="send_review">
+                📤 Guardar y enviar a revisión
+              </button>
+            {% endif %}
+
+          {% endif %}
+        {% endif %}
+
+        {# ===== REVISOR (EN_REVISION): puede corregir y luego marcar revisado ===== #}
+        {% if op.estado == "EN_REVISION" and is_reviewer %}
+          {% if puede_editar %}
+            <button class="btn btn-ghost" type="submit" name="action" value="save">
+              💾 Guardar
+            </button>
+          {% endif %}
+          <a class="btn btn-primary" href="{% url 'op_mark_reviewed' op.pk %}">✅ Marcar como revisado</a>
+          <a class="btn btn-ghost" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
+        {% endif %}
+
+        {# ===== APROBADOR (REVISADO): POST usando formaction, SIN forms anidados ===== #}
+        {% if op.estado == "REVISADO" and is_approver and not is_reviewer %}
+          <button class="btn btn-primary" type="submit"
+                  formaction="{% url 'op_approve' op.pk %}" formmethod="post">
+            ✅ Aprobar
+          </button>
+
+          <button class="btn btn-ghost" type="submit"
+                  formaction="{% url 'op_back_to_review' op.pk %}" formmethod="post">
+            ↩️ Devolver a revisión
+          </button>
+
+          <button class="btn btn-danger" type="submit"
+                  formaction="{% url 'op_reject' op.pk %}" formmethod="post"
+                  onclick="return confirm('¿Rechazar la OP {{ op.number }}?');">
+            ❌ Rechazar
+          </button>
+        {% endif %}
+
+        {% if op.estado == "APROBADO" %}
+          <span class="muted">✅ OP aprobada.</span>
+        {% elif op.estado == "RECHAZADO" %}
+          <span class="muted">❌ OP rechazada.</span>
+        {% endif %}
+
+        {# Navegación simple #}
+        {% if return_cc_pk %}
+          <a class="btn btn-ghost" href="{% url 'cc_detail' return_cc_pk %}">← Volver al cuadro</a>
+        {% endif %}
+
+        <a class="btn btn-ghost" href="{% url 'op_list' %}">← Volver</a>
+      </div>
+    </div>
+
+  </form>
 
 </div>
 
