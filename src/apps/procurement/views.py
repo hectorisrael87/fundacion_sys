@@ -200,7 +200,6 @@ def cc_detail(request, pk: int):
         totales_por_proveedor[str(prov_id)] = total
 
     total_general = sum(totales_por_proveedor.values(), Decimal("0"))
-
     # 🔒 Bloqueo total cuando está REVISADO/APROBADO/RECHAZADO (excepto superuser)
     cc_bloqueado = (cc.estado in LOCKED_CC_STATES and not user.is_superuser)
 
@@ -230,6 +229,13 @@ def cc_detail(request, pk: int):
             cc.estado == ComparativeQuote.Status.BORRADOR
             and cc.creado_por_id == user.id
         )
+    )
+
+    # =========================
+    # Adjuntos (cotizaciones)
+    # =========================
+    adjuntos = list(
+        cc.adjuntos.select_related("subido_por").all().order_by("-subido_en")
     )
 
     # Si está bloqueado, por seguridad visual forzamos a False (excepto superuser ya contemplado)
@@ -280,6 +286,7 @@ def cc_detail(request, pk: int):
     ops_all_reviewed = bool(ops) and all(
         op.estado == PaymentOrder.Status.REVISADO for op in ops
     )
+
     ops_total = len(ops)
     ops_reviewed_count = sum(1 for opx in ops if opx.estado == PaymentOrder.Status.REVISADO)
     ops_pending_count = ops_total - ops_reviewed_count
@@ -289,6 +296,7 @@ def cc_detail(request, pk: int):
         if opx.estado == PaymentOrder.Status.EN_REVISION:
             first_pending_op_id = opx.id
             break
+
     if first_pending_op_id is None and ops:
         # fallback: si no hay EN_REVISION pero hay otras, manda a la primera
         first_pending_op_id = ops[0].id
