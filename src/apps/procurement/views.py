@@ -31,6 +31,21 @@ def _can_edit_cc(user, cc: ComparativeQuote) -> bool:
     # ✅ aprobador (solo aprobador) NO edita nunca
     return user.is_superuser or is_reviewer(user) or (cc.creado_por_id == user.id)
 
+def _op_is_complete(op: PaymentOrder) -> bool:
+    """
+    OP completa para poder enviar el CC a revisión:
+    - Descripción obligatoria
+    - Si es parcial: monto_manual obligatorio y > 0
+    (Reglas mínimas, sin tocar la lógica de parciales/complementos)
+    """
+    if not (op.descripcion or "").strip():
+        return False
+
+    if op.es_parcial:
+        if op.monto_manual is None or op.monto_manual <= 0:
+            return False
+
+    return True
 
 @login_required
 def cc_list(request):
@@ -215,7 +230,13 @@ def cc_detail(request, pk: int):
     has_proveedores = len(proveedores) > 0
     has_motivo = bool((cc.motivo_seleccion or "").strip())
     has_selected_supplier = bool(cc.proveedor_seleccionado_id)
-    has_ops = cc.ordenes_pago.exists()
+
+    # OPs: deben existir y estar "completas"
+    ops = list(cc.ordenes_pago.all().order_by("id"))
+    has_ops = len(ops) > 0
+    ops_incompletas = [op for op in ops if not _op_is_complete(op)]
+    has_ops_complete = has_ops and (len(ops_incompletas) == 0)
+    first_incomplete_op_id = ops_incompletas[0].id if ops_incompletas else None
 
     missing_matrix = []
     matriz_completa = False
@@ -233,8 +254,9 @@ def cc_detail(request, pk: int):
         matriz_completa,
         has_selected_supplier,
         has_motivo,
-        has_ops,
+        has_ops_complete,  # ✅ ahora es "completas", no solo "creadas"
     ])
+
 
     return render(
         request,
@@ -265,8 +287,13 @@ def cc_detail(request, pk: int):
             "cc_matriz_completa": matriz_completa,
             "cc_has_selected_supplier": has_selected_supplier,
             "cc_has_motivo": has_motivo,
+
             "cc_has_ops": has_ops,
+            "cc_has_ops_complete": has_ops_complete,
+            "cc_first_incomplete_op_id": first_incomplete_op_id,
+
             "cc_ready_for_review": cc_ready_for_review,
+
         },
     )
 
@@ -650,6 +677,18 @@ def cc_send_review(request, pk):
             "Cuando termines, vuelve al cuadro y haz clic nuevamente en “Enviar a revisión”."
         )
         return redirect("cc_generate_ops", pk=cc.pk)
+    # ✅ Si hay OPs, deben estar COMPLETAS (mínimo: descripción; y monto si es parcial)
+    ops = list(cc.ordenes_pago.all().order_by("id"))
+    incompletas = [op for op in ops if not _op_is_complete(op)]
+    if incompletas:
+        first_op = incompletas[0]
+        messages.error(
+            request,
+            "Antes de enviar a revisión, completa la(s) Órdenes de Pago (ej: descripción obligatoria)."
+        )
+        url = reverse("op_detail", kwargs={"pk": first_op.pk})
+        qs = urlencode({"return_cc": cc.pk})
+        return redirect(f"{url}?{qs}")
 
     # =========================
     # ✅ OK: pasar a EN_REVISION

@@ -356,6 +356,8 @@
                 {% if not cc_has_selected_supplier %}<li>Proveedor seleccionado</li>{% endif %}
                 {% if not cc_has_motivo %}<li>Motivo</li>{% endif %}
                 {% if not cc_has_ops %}<li>Órdenes de pago generadas</li>{% endif %}
+                {% if cc_has_ops and not cc_has_ops_complete %}<li>Completar Órdenes de Pago (descripción obligatoria)</li>{% endif %}
+
               </ul>
             </div>
 
@@ -399,9 +401,14 @@
       {% endif %}
 
       {% if user.is_superuser or cc.creado_por_id == user.id %}
-        <a class="btn" href="{% url 'cc_generate_ops' cc.pk %}">🧾 Generar órdenes de pago</a>
+        {% if not cc_has_ops %}
+          <a class="btn" href="{% url 'cc_generate_ops' cc.pk %}">🧾 Generar órdenes de pago</a>
+        {% elif not cc_has_ops_complete and cc_first_incomplete_op_id %}
+          <a class="btn" href="{% url 'op_detail' cc_first_incomplete_op_id %}?return_cc={{ cc.pk }}">
+            🛠️ Completar órdenes de pago
+          </a>
+        {% endif %}
       {% endif %}
-
 
       {% url 'cc_print' cc.pk as cc_print_url %}
       {% if cc_print_url %}
@@ -411,14 +418,57 @@
 
     <div class="mt-md">
       <b>Órdenes creadas:</b>
+
       {% if ordenes %}
-        {% for op in ordenes %}
-          <a href="{% url 'op_detail' op.id %}">{{ op.number }}</a>{% if not forloop.last %}, {% endif %}
-        {% endfor %}
+        <div class="mt-sm">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width:160px;">Número</th>
+                <th>Proveedor</th>
+                <th style="width:180px;">Estado</th>
+                <th style="width:120px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for op in ordenes %}
+                {# ✅ OP completa: descripción no vacía; si es parcial, monto_manual requerido #}
+                {% if op.descripcion and (not op.es_parcial or op.monto_manual) %}
+                  {% with op_ok=True %}
+                    <tr>
+                      <td>{{ op.number }}</td>
+                      <td>{{ op.proveedor.nombre_empresa|default:"-" }}</td>
+                      <td>✅ Completa</td>
+                      <td>
+                        <a class="btn btn-ghost btn-sm"
+                           href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
+                          👁️ Ver
+                        </a>
+                      </td>
+                    </tr>
+                  {% endwith %}
+                {% else %}
+                  <tr>
+                    <td>{{ op.number }}</td>
+                    <td>{{ op.proveedor.nombre_empresa|default:"-" }}</td>
+                    <td>⚠️ Incompleta</td>
+                    <td>
+                      <a class="btn btn-primary btn-sm"
+                         href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
+                        🛠️ Completar
+                      </a>
+                    </td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       {% else %}
-        Ninguna
+        <div class="muted mt-sm">Ninguna</div>
       {% endif %}
     </div>
+
   </div>
 
 </div>
