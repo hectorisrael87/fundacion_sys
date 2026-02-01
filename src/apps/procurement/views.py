@@ -265,6 +265,9 @@ def cc_detail(request, pk: int):
     ops_all_reviewed = bool(ops) and all(
         op.estado == PaymentOrder.Status.REVISADO for op in ops
     )
+    ops_total = len(ops)
+    ops_reviewed_count = sum(1 for opx in ops if opx.estado == PaymentOrder.Status.REVISADO)
+    ops_pending_count = ops_total - ops_reviewed_count
 
     first_pending_op_id = None
     for opx in ops:
@@ -314,6 +317,10 @@ def cc_detail(request, pk: int):
             # ✅ Flags revisor (círculo de revisión)
             "ops_all_reviewed": ops_all_reviewed,
             "first_pending_op_id": first_pending_op_id,
+            "ops_total": ops_total,
+            "ops_reviewed_count": ops_reviewed_count,
+            "ops_pending_count": ops_pending_count,
+
         },
     )
 
