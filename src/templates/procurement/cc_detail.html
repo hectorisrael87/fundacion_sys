@@ -375,12 +375,14 @@
       {% elif cc.estado == "EN_REVISION" %}
         {% if is_reviewer %}
 
+          {# Entrada al círculo de revisión de OPs #}
           {% if first_pending_op_id %}
             <a class="btn btn-ghost" href="{% url 'op_detail' first_pending_op_id %}?return_cc={{ cc.pk }}">
               🛠️ Revisar órdenes de pago
             </a>
           {% endif %}
 
+          {# Bloqueo: solo permitir marcar CC como revisado cuando TODAS las OP estén REVISADO #}
           {% if ops_all_reviewed %}
             <a class="btn btn-primary" href="{% url 'cc_mark_reviewed' cc.pk %}">
               ✅ Marcar como revisado
@@ -390,7 +392,7 @@
               ✅ Marcar como revisado
             </span>
             <span class="muted" style="margin-left:8px;">
-              (Primero marca como revisadas todas las OP)
+              Primero marca como revisadas todas las OP.
             </span>
           {% endif %}
 
@@ -399,6 +401,7 @@
         {% else %}
           <span class="muted">⏳ Pendiente de revisión.</span>
         {% endif %}
+
 
       {% elif cc.estado == "REVISADO" %}
         {% if is_approver and not is_reviewer %}
