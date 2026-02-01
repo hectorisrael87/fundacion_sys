@@ -331,26 +331,38 @@ def op_send_review(request, pk: int):
 def op_mark_reviewed(request, pk: int):
     op = get_object_or_404(PaymentOrder, pk=pk)
 
-    # Solo revisor (o superuser)
     if not (request.user.is_superuser or is_reviewer(request.user)):
         return HttpResponseForbidden("No tienes permiso para revisar.")
 
-    # Creador no puede revisar su propia OP
     if op.creado_por_id == request.user.id and not request.user.is_superuser:
         return HttpResponseForbidden("No puedes revisar una OP que tú creaste.")
 
-    # Debe estar EN_REVISION
     if op.estado != PaymentOrder.Status.EN_REVISION:
         messages.error(request, "La OP no está en revisión.")
         return redirect("op_detail", pk=pk)
 
+    return_cc = request.GET.get("return_cc")
+    return_cc_pk = int(return_cc) if (return_cc and return_cc.isdigit()) else None
+
     op.estado = PaymentOrder.Status.REVISADO
     op.revisado_por = request.user
     op.revisado_en = timezone.now()
-    # No tocamos aprobado aquí (debe estar vacío)
     op.save(update_fields=["estado", "revisado_por", "revisado_en"])
 
     messages.success(request, "OP marcada como revisada.")
+
+    # ✅ Círculo: si venías desde CC, ir a la siguiente OP o volver al CC
+    if return_cc_pk and op.cuadro_id == return_cc_pk:
+        op_ids = list(op.cuadro.ordenes_pago.order_by("id").values_list("id", flat=True))
+        try:
+            idx = op_ids.index(op.id)
+            if idx < len(op_ids) - 1:
+                next_op_pk = op_ids[idx + 1]
+                return redirect(f"{reverse('op_detail', kwargs={'pk': next_op_pk})}?return_cc={return_cc_pk}")
+        except ValueError:
+            pass
+        return redirect("cc_detail", pk=return_cc_pk)
+
     return redirect("op_detail", pk=pk)
 
 

@@ -387,7 +387,11 @@
           <a class="btn btn-ghost" href="{% url 'cc_detail' return_cc_pk %}">← Volver al cuadro</a>
         {% endif %}
 
-        <a class="btn btn-ghost" href="{% url 'op_list' %}">← Volver</a>
+        {% if return_cc_pk %}
+          <a class="btn btn-ghost" href="{% url 'cc_detail' return_cc_pk %}">← Volver al cuadro</a>
+        {% else %}
+          <a class="btn btn-ghost" href="{% url 'op_list' %}">← Volver</a>
+        {% endif %}
       </div>
     </div>
 
