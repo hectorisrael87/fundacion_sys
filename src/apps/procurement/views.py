@@ -13,7 +13,6 @@ from apps.core.permissions import is_creator, is_reviewer, is_approver
 from apps.payments.models import PaymentOrder, PaymentOrderItem
 from django.db.models.deletion import ProtectedError
 
-
 from .forms import (
     ComparativeItemForm,
     ComparativeQuoteForm,
@@ -642,13 +641,11 @@ def cc_send_review(request, pk):
     if not proveedores:
         errores.append("Debes agregar al menos un proveedor.")
 
-    # Validar proveedor seleccionado + motivo
     if not cc.proveedor_seleccionado_id:
         errores.append("Debes seleccionar un proveedor ganador.")
     if not (cc.motivo_seleccion or "").strip():
         errores.append("Debes registrar el motivo de la selección.")
 
-    # Validar matriz completa (precio por cada proveedor y producto)
     if items and proveedores:
         existentes = set(cc.precios.values_list("proveedor_id", "producto_id"))
         faltantes = []
@@ -668,8 +665,7 @@ def cc_send_review(request, pk):
             messages.error(request, e)
         return redirect("cc_detail", pk=cc.pk)
 
-    # ✅ FLUJO (PASO A):
-    # Si aún no hay OPs, mandamos a generar OPs primero (y luego vuelve al CC).
+    # ✅ PASO A: si no hay OPs, generar primero
     if not cc.ordenes_pago.exists():
         messages.info(
             request,
@@ -677,7 +673,8 @@ def cc_send_review(request, pk):
             "Cuando termines, vuelve al cuadro y haz clic nuevamente en “Enviar a revisión”."
         )
         return redirect("cc_generate_ops", pk=cc.pk)
-    # ✅ Si hay OPs, deben estar COMPLETAS (mínimo: descripción; y monto si es parcial)
+
+    # ✅ OPs deben estar completas
     ops = list(cc.ordenes_pago.all().order_by("id"))
     incompletas = [op for op in ops if not _op_is_complete(op)]
     if incompletas:
@@ -691,28 +688,44 @@ def cc_send_review(request, pk):
         return redirect(f"{url}?{qs}")
 
     # =========================
-    # ✅ OK: pasar a EN_REVISION
+    # ✅ OK: envío en paquete (CC + OPs) en una sola transacción
     # =========================
-    cc.estado = ComparativeQuote.Status.EN_REVISION
-    cc.revisado_por = None
-    cc.revisado_en = None
-    cc.aprobado_por = None
-    cc.aprobado_en = None
-    cc.rechazado_por = None
-    cc.rechazado_en = None
-    cc.save(
-        update_fields=[
+    with transaction.atomic():
+        # OPs a EN_REVISION
+        for op in ops:
+            if op.estado in {PaymentOrder.Status.BORRADOR, PaymentOrder.Status.RECHAZADO}:
+                op.estado = PaymentOrder.Status.EN_REVISION
+                op.revisado_por = None
+                op.revisado_en = None
+                op.aprobado_por = None
+                op.aprobado_en = None
+                op.rechazado_por = None
+                op.rechazado_en = None
+                op.save(update_fields=[
+                    "estado",
+                    "revisado_por", "revisado_en",
+                    "aprobado_por", "aprobado_en",
+                    "rechazado_por", "rechazado_en",
+                ])
+
+        # CC a EN_REVISION
+        cc.estado = ComparativeQuote.Status.EN_REVISION
+        cc.revisado_por = None
+        cc.revisado_en = None
+        cc.aprobado_por = None
+        cc.aprobado_en = None
+        cc.rechazado_por = None
+        cc.rechazado_en = None
+        cc.save(update_fields=[
             "estado",
-            "revisado_por",
-            "revisado_en",
-            "aprobado_por",
-            "aprobado_en",
-            "rechazado_por",
-            "rechazado_en",
-        ]
-    )
-    messages.success(request, "Cuadro enviado a revisión.")
+            "revisado_por", "revisado_en",
+            "aprobado_por", "aprobado_en",
+            "rechazado_por", "rechazado_en",
+        ])
+
+    messages.success(request, "Cuadro y Órdenes de Pago enviados a revisión.")
     return redirect("cc_detail", pk=cc.pk)
+
 
 @login_required
 def cc_mark_reviewed(request, pk):

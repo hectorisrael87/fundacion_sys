@@ -243,7 +243,6 @@ def op_detail(request, pk: int):
     )
 
 
-
 # =========================
 # FLUJO: BORRADOR -> EN_REVISION -> REVISADO -> APROBADO
 # =========================
@@ -252,7 +251,17 @@ def op_detail(request, pk: int):
 def op_send_review(request, pk: int):
     op = get_object_or_404(PaymentOrder, pk=pk)
 
-    return_cc = request.GET.get("return_cc")
+    # ✅ Si esta OP pertenece a un CC que aún está en flujo, no se envía sola.
+    if op.cuadro_id:
+        cc_estado = getattr(op.cuadro, "estado", None)
+        if cc_estado in {"BORRADOR", "EN_REVISION", "REVISADO"}:
+            messages.error(
+                request,
+                "Esta Orden pertenece a un Cuadro en flujo. Envíala a revisión desde el Cuadro Comparativo."
+            )
+            return redirect("cc_detail", pk=op.cuadro_id)
+
+    return_cc = request.GET.get("return_cc") or request.POST.get("return_cc")
     return_cc_pk = int(return_cc) if (return_cc and return_cc.isdigit()) else None
 
     # Solo creador (o superuser) puede enviar a revisión
@@ -268,7 +277,6 @@ def op_send_review(request, pk: int):
         messages.error(request, "Solo puedes enviar a revisión desde Borrador o Rechazado.")
         return redirect("op_detail", pk=op.pk)
 
-    # ✅ VALIDACIONES (las tuyas)
     errores = []
 
     if not (op.descripcion or "").strip():
@@ -294,12 +302,10 @@ def op_send_review(request, pk: int):
     if errores:
         for e in errores:
             messages.error(request, e)
-        # preservar return_cc al volver
         if return_cc_pk:
             return redirect(f"{reverse('op_detail', kwargs={'pk': op.pk})}?return_cc={return_cc_pk}")
         return redirect("op_detail", pk=op.pk)
 
-    # ✅ OK: pasar a EN_REVISION
     op.estado = PaymentOrder.Status.EN_REVISION
     op.revisado_por = None
     op.revisado_en = None
@@ -316,14 +322,10 @@ def op_send_review(request, pk: int):
 
     messages.success(request, "OP enviada a revisión.")
 
-    # ✅ Si venías desde un CC, volver al CC (para seguir el “círculo”)
     if return_cc_pk and op.cuadro_id == return_cc_pk:
         return redirect("cc_detail", pk=return_cc_pk)
 
     return redirect("op_detail", pk=op.pk)
-
-
-
 
 @login_required
 def op_mark_reviewed(request, pk: int):

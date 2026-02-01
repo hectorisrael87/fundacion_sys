@@ -432,21 +432,47 @@
             </thead>
             <tbody>
               {% for op in ordenes %}
-                {# ✅ OP completa: descripción no vacía; si es parcial, monto_manual requerido #}
-                {% if op.descripcion and (not op.es_parcial or op.monto_manual) %}
-                  {% with op_ok=True %}
+                {# OP completa: descripción no vacía; si es parcial, monto_manual requerido #}
+                {% if op.descripcion %}
+                  {% if op.es_parcial %}
+                    {% if op.monto_manual %}
+                      <tr>
+                        <td>{{ op.number }}</td>
+                        <td>{{ op.proveedor.nombre_empresa|default:"-" }}</td>
+                        <td>✅ Completa</td>
+                        <td>
+                          <a class="btn btn-ghost btn-sm"
+                            href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
+                            👁️ Ver
+                          </a>
+                        </td>
+                      </tr>
+                    {% else %}
+                      <tr>
+                        <td>{{ op.number }}</td>
+                        <td>{{ op.proveedor.nombre_empresa|default:"-" }}</td>
+                        <td>⚠️ Incompleta</td>
+                        <td>
+                          <a class="btn btn-primary btn-sm"
+                            href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
+                            🛠️ Completar
+                          </a>
+                        </td>
+                      </tr>
+                    {% endif %}
+                  {% else %}
                     <tr>
                       <td>{{ op.number }}</td>
                       <td>{{ op.proveedor.nombre_empresa|default:"-" }}</td>
                       <td>✅ Completa</td>
                       <td>
                         <a class="btn btn-ghost btn-sm"
-                           href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
+                          href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
                           👁️ Ver
                         </a>
                       </td>
                     </tr>
-                  {% endwith %}
+                  {% endif %}
                 {% else %}
                   <tr>
                     <td>{{ op.number }}</td>
@@ -454,7 +480,7 @@
                     <td>⚠️ Incompleta</td>
                     <td>
                       <a class="btn btn-primary btn-sm"
-                         href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
+                        href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
                         🛠️ Completar
                       </a>
                     </td>
@@ -462,6 +488,7 @@
                 {% endif %}
               {% endfor %}
             </tbody>
+
           </table>
         </div>
       {% else %}
