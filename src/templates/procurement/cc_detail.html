@@ -374,6 +374,14 @@
 
       {% elif cc.estado == "EN_REVISION" %}
         {% if is_reviewer %}
+          {% with ordenes|first as first_op %}
+            {% if first_op %}
+              <a class="btn btn-ghost" href="{% url 'op_detail' first_op.id %}?return_cc={{ cc.pk }}">
+                🛠️ Revisar órdenes de pago
+              </a>
+            {% endif %}
+          {% endwith %}
+
           <a class="btn btn-primary" href="{% url 'cc_mark_reviewed' cc.pk %}">✅ Marcar como revisado</a>
           <a class="btn btn-ghost" href="{% url 'cc_back_to_draft' cc.pk %}">↩️ Devolver a borrador</a>
         {% else %}

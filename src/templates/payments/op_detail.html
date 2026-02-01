@@ -347,8 +347,14 @@
               💾 Guardar
             </button>
           {% endif %}
-          <a class="btn btn-primary" href="{% url 'op_mark_reviewed' op.pk %}">✅ Marcar como revisado</a>
-          <a class="btn btn-ghost" href="{% url 'op_back_to_draft' op.pk %}">↩️ Devolver a borrador</a>
+           <a class="btn btn-primary"
+            href="{% url 'op_mark_reviewed' op.pk %}{% if return_cc_pk %}?return_cc={{ return_cc_pk }}{% endif %}">
+            ✅ Marcar como revisado
+          </a>
+          <a class="btn btn-ghost"
+            href="{% url 'op_back_to_draft' op.pk %}{% if return_cc_pk %}?return_cc={{ return_cc_pk }}{% endif %}">
+            ↩️ Devolver a borrador
+          </a>
         {% endif %}
 
         {# ===== APROBADOR (REVISADO): POST usando formaction, SIN forms anidados ===== #}

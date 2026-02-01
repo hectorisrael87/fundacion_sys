@@ -734,19 +734,65 @@ def cc_mark_reviewed(request, pk):
     if not (request.user.is_superuser or is_reviewer(request.user)):
         return HttpResponseForbidden("No tienes permiso para revisar.")
 
-    if cc.creado_por_id == request.user.id:
+    if cc.creado_por_id == request.user.id and not request.user.is_superuser:
         return HttpResponseForbidden("No puedes revisar un cuadro que tú creaste.")
 
     if cc.estado != ComparativeQuote.Status.EN_REVISION:
         messages.error(request, "El cuadro no está en revisión.")
         return redirect("cc_detail", pk=pk)
 
-    cc.estado = ComparativeQuote.Status.REVISADO
-    cc.revisado_por = request.user
-    cc.revisado_en = timezone.now()
-    cc.save(update_fields=["estado", "revisado_por", "revisado_en"])
+    # ✅ Debe tener OPs (en este flujo siempre debería)
+    ops = list(cc.ordenes_pago.all().order_by("id"))
+    if not ops:
+        messages.error(request, "Este cuadro no tiene Órdenes de Pago generadas.")
+        return redirect("cc_detail", pk=pk)
 
-    messages.success(request, "Cuadro marcado como revisado.")
+    # ✅ Validación: todas las OPs deben estar en EN_REVISION o REVISADO (nada en BORRADOR/RECHAZADO/APROBADO)
+    estados_invalidos = [
+        op for op in ops
+        if op.estado not in {PaymentOrder.Status.EN_REVISION, PaymentOrder.Status.REVISADO}
+    ]
+    if estados_invalidos:
+        first_op = estados_invalidos[0]
+        messages.error(
+            request,
+            "No puedes marcar el cuadro como revisado: hay Órdenes con estado inválido para revisión."
+        )
+        url = reverse("op_detail", kwargs={"pk": first_op.pk})
+        qs = urlencode({"return_cc": cc.pk})
+        return redirect(f"{url}?{qs}")
+
+    # ✅ Validación extra: que sigan completas (por si alguien borró descripción, etc.)
+    incompletas = [op for op in ops if not _op_is_complete(op)]
+    if incompletas:
+        first_op = incompletas[0]
+        messages.error(
+            request,
+            "Antes de marcar como revisado, completa las Órdenes de Pago (descripción obligatoria; y monto si es parcial)."
+        )
+        url = reverse("op_detail", kwargs={"pk": first_op.pk})
+        qs = urlencode({"return_cc": cc.pk})
+        return redirect(f"{url}?{qs}")
+
+    now = timezone.now()
+
+    # ✅ Revisión en grupo: CC + OPs en una sola transacción
+    with transaction.atomic():
+        # Marcar OPs EN_REVISION como REVISADO
+        for op in ops:
+            if op.estado == PaymentOrder.Status.EN_REVISION:
+                op.estado = PaymentOrder.Status.REVISADO
+                op.revisado_por = request.user
+                op.revisado_en = now
+                op.save(update_fields=["estado", "revisado_por", "revisado_en"])
+
+        # Marcar CC como REVISADO
+        cc.estado = ComparativeQuote.Status.REVISADO
+        cc.revisado_por = request.user
+        cc.revisado_en = now
+        cc.save(update_fields=["estado", "revisado_por", "revisado_en"])
+
+    messages.success(request, "Cuadro y Órdenes marcados como revisados.")
     return redirect("cc_detail", pk=pk)
 
 
