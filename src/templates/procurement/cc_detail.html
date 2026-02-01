@@ -374,19 +374,32 @@
 
       {% elif cc.estado == "EN_REVISION" %}
         {% if is_reviewer %}
-          {% with ordenes|first as first_op %}
-            {% if first_op %}
-              <a class="btn btn-ghost" href="{% url 'op_detail' first_op.id %}?return_cc={{ cc.pk }}">
-                🛠️ Revisar órdenes de pago
-              </a>
-            {% endif %}
-          {% endwith %}
 
-          <a class="btn btn-primary" href="{% url 'cc_mark_reviewed' cc.pk %}">✅ Marcar como revisado</a>
+          {% if first_pending_op_id %}
+            <a class="btn btn-ghost" href="{% url 'op_detail' first_pending_op_id %}?return_cc={{ cc.pk }}">
+              🛠️ Revisar órdenes de pago
+            </a>
+          {% endif %}
+
+          {% if ops_all_reviewed %}
+            <a class="btn btn-primary" href="{% url 'cc_mark_reviewed' cc.pk %}">
+              ✅ Marcar como revisado
+            </a>
+          {% else %}
+            <span class="btn btn-primary btn-sm" style="opacity:.5; pointer-events:none;">
+              ✅ Marcar como revisado
+            </span>
+            <span class="muted" style="margin-left:8px;">
+              (Primero marca como revisadas todas las OP)
+            </span>
+          {% endif %}
+
           <a class="btn btn-ghost" href="{% url 'cc_back_to_draft' cc.pk %}">↩️ Devolver a borrador</a>
+
         {% else %}
           <span class="muted">⏳ Pendiente de revisión.</span>
         {% endif %}
+
       {% elif cc.estado == "REVISADO" %}
         {% if is_approver and not is_reviewer %}
           <form method="post" action="{% url 'cc_approve_final' cc.pk %}" class="inline-form">
