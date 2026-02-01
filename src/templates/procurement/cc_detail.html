@@ -382,10 +382,16 @@
             </a>
           {% endif %}
           {% if ops_total %}
-            <span class="muted" style="margin-left:8px;">
-              OP revisadas: <b>{{ ops_reviewed_count }}/{{ ops_total }}</b>
-              {% if ops_pending_count > 0 %} · Pendientes: {{ ops_pending_count }}{% endif %}
-            </span>
+            {% if ops_all_reviewed %}
+              <span class="tag tag-ok">
+                ✅ OP revisadas: <b>{{ ops_reviewed_count }}/{{ ops_total }}</b>
+              </span>
+            {% else %}
+              <span class="tag tag-warn">
+                ⚠️ OP revisadas: <b>{{ ops_reviewed_count }}/{{ ops_total }}</b>
+                {% if ops_pending_count > 0 %} · Pendientes: {{ ops_pending_count }}{% endif %}
+              </span>
+            {% endif %}
           {% endif %}
   
           {# Bloqueo: solo permitir marcar CC como revisado cuando TODAS las OP estén REVISADO #}

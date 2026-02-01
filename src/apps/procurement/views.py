@@ -24,7 +24,12 @@ from .models import ComparativeQuote, ComparativeQuoteAttachment
 from django.urls import reverse
 from urllib.parse import urlencode
 
-LOCKED_CC_STATES = {ComparativeQuote.Status.APROBADO, ComparativeQuote.Status.RECHAZADO}
+LOCKED_CC_STATES = {
+    ComparativeQuote.Status.REVISADO,
+    ComparativeQuote.Status.APROBADO,
+    ComparativeQuote.Status.RECHAZADO,
+}
+
 
 def _can_edit_cc(user, cc: ComparativeQuote) -> bool:
     # ✅ aprobador (solo aprobador) NO edita nunca
@@ -196,31 +201,41 @@ def cc_detail(request, pk: int):
 
     total_general = sum(totales_por_proveedor.values(), Decimal("0"))
 
-    # 🔒 Bloqueo visual/funcional cuando está en estados bloqueados (excepto superuser)
+    # 🔒 Bloqueo total cuando está REVISADO/APROBADO/RECHAZADO (excepto superuser)
     cc_bloqueado = (cc.estado in LOCKED_CC_STATES and not user.is_superuser)
 
-    # ✅ Permiso de edición del cuadro (creador + revisor + superuser), pero bloqueado si estado bloqueado
+    # ✅ Edición del CC:
+    # - Superuser: siempre
+    # - Creador: solo en BORRADOR
+    # - Revisor: solo en EN_REVISION (para correcciones)
     can_edit_cc = (
-        not cc_bloqueado
-        and (
-            user.is_superuser
-            or is_reviewer(user)
-            or cc.creado_por_id == user.id
+        user.is_superuser
+        or (
+            cc.estado == ComparativeQuote.Status.BORRADOR
+            and cc.creado_por_id == user.id
+        )
+        or (
+            cc.estado == ComparativeQuote.Status.EN_REVISION
+            and is_reviewer(user)
+            and cc.creado_por_id != user.id
         )
     )
 
-    adjuntos = list(
-        cc.adjuntos.select_related("subido_por").all().order_by("-subido_en")
-    )
-
-    # ✅ Adjuntos: solo creador + superuser (y bloqueado si estado bloqueado)
+    # ✅ Documentos/cotizaciones:
+    # - Superuser: siempre
+    # - Creador: solo en BORRADOR
     can_edit_docs = (
-        not cc_bloqueado
-        and (
-            user.is_superuser
-            or cc.creado_por_id == user.id
+        user.is_superuser
+        or (
+            cc.estado == ComparativeQuote.Status.BORRADOR
+            and cc.creado_por_id == user.id
         )
     )
+
+    # Si está bloqueado, por seguridad visual forzamos a False (excepto superuser ya contemplado)
+    if cc_bloqueado and not user.is_superuser:
+        can_edit_cc = False
+        can_edit_docs = False
 
     # =========================
     # OPs del cuadro (usar UNA sola vez)

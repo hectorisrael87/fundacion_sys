@@ -257,6 +257,31 @@ body{
 .minw-900{ min-width:900px; }
 
 .kv p{ margin:6px 0; }
+/* ==== Badges / Tags ==== */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #d7dbe0;
+  font-size: 12px;
+  line-height: 1.2;
+  background: #f7f8fa;
+  color: #222;
+}
+
+.tag-ok {
+  background: #ECFDF3;
+  border-color: #B7F0C5;
+  color: #14532D;
+}
+
+.tag-warn {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+  color: #7C2D12;
+}
 
 /* controls */
 .control{
