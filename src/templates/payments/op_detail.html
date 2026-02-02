@@ -310,17 +310,26 @@
     <div class="card">
       <div class="hstack">
 
-        {% if op.estado == "BORRADOR" and puede_editar and (op.creado_por_id == user.id or user.is_superuser) %}
-          <button class="btn btn-ghost" type="submit" name="action" value="save">💾 Guardar</button>
+        {% if op.estado == "BORRADOR" and puede_editar %}
+          {% if op.creado_por_id == user.id or user.is_superuser %}
 
-          {% if return_cc_pk %}
-            {% if next_op_pk %}
-              <button class="btn btn-primary" type="submit" name="action" value="save_next">💾 Guardar y siguiente →</button>
+            <button class="btn btn-ghost" type="submit" name="action" value="save">💾 Guardar</button>
+
+            {% if return_cc_pk %}
+              {% if next_op_pk %}
+                <button class="btn btn-primary" type="submit" name="action" value="save_next">
+                  💾 Guardar y siguiente →
+                </button>
+              {% else %}
+                <button class="btn btn-primary" type="submit" name="action" value="save_return_cc">
+                  ✓ Guardar y volver al cuadro
+                </button>
+              {% endif %}
             {% else %}
-              <button class="btn btn-primary" type="submit" name="action" value="save_return_cc">✓ Guardar y volver al cuadro</button>
+              <button class="btn btn-primary" type="submit" name="action" value="send_review">
+                📤 Guardar y enviar a revisión
+              </button>
             {% endif %}
-          {% else %}
-            <button class="btn btn-primary" type="submit" name="action" value="send_review">📤 Guardar y enviar a revisión</button>
           {% endif %}
         {% endif %}
 
