@@ -457,7 +457,7 @@
         {% else %}
           <span class="muted">⏳ Pendiente de aprobación.</span>
         {% endif %}
-
+      {% endif %} {# ✅ cierre del if cc.estado (BORRADOR/EN_REVISION/REVISADO) #}
       {% if user.is_superuser or cc.creado_por_id == user.id %}
         {% if not cc_has_ops %}
           <a class="btn" href="{% url 'cc_generate_ops' cc.pk %}">🧾 Generar órdenes de pago</a>
