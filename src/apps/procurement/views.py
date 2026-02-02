@@ -830,6 +830,9 @@ def cc_mark_reviewed(request, pk):
 
 @login_required
 def cc_back_to_review(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
     if not (request.user.is_superuser or is_approver(request.user)):
@@ -839,35 +842,105 @@ def cc_back_to_review(request, pk):
         messages.error(request, "Solo se puede devolver a revisión un cuadro en estado REVISADO.")
         return redirect("cc_detail", pk=pk)
 
-    cc.estado = ComparativeQuote.Status.EN_REVISION
-    cc.aprobado_por = None
-    cc.aprobado_en = None
-    cc.save(update_fields=["estado", "aprobado_por", "aprobado_en"])
+    ops = list(cc.ordenes_pago.all().order_by("id"))
+    if not ops:
+        messages.error(request, "Este cuadro no tiene Órdenes de Pago generadas.")
+        return redirect("cc_detail", pk=pk)
 
-    messages.success(request, "Devuelto a revisión.")
+    with transaction.atomic():
+        # Devolver OPs a EN_REVISION (y limpiar aprobaciones/rechazos)
+        for op in ops:
+            # Si alguna OP ya está APROBADA, por regla del sistema NO debería poder volver.
+            if op.estado == PaymentOrder.Status.APROBADO:
+                messages.error(request, "No se puede devolver a revisión: hay Órdenes ya APROBADAS.")
+                return redirect("cc_detail", pk=pk)
+
+        for op in ops:
+            op.estado = PaymentOrder.Status.EN_REVISION
+            op.aprobado_por = None
+            op.aprobado_en = None
+            op.rechazado_por = None
+            op.rechazado_en = None
+            # dejamos revisado_por/en como rastro, o si prefieres limpiar, dime
+            op.save(update_fields=[
+                "estado",
+                "aprobado_por", "aprobado_en",
+                "rechazado_por", "rechazado_en",
+            ])
+
+        # CC a EN_REVISION
+        cc.estado = ComparativeQuote.Status.EN_REVISION
+        cc.aprobado_por = None
+        cc.aprobado_en = None
+        cc.rechazado_por = None
+        cc.rechazado_en = None
+        cc.save(update_fields=[
+            "estado",
+            "aprobado_por", "aprobado_en",
+            "rechazado_por", "rechazado_en",
+        ])
+
+    messages.success(request, "Cuadro y Órdenes devueltos a revisión.")
     return redirect("cc_detail", pk=pk)
 
 
 @login_required
 def cc_approve_final(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
     cc = get_object_or_404(ComparativeQuote, pk=pk)
 
     if not (request.user.is_superuser or is_approver(request.user)):
         return HttpResponseForbidden("No tienes permiso para aprobar.")
 
-    if cc.creado_por_id == request.user.id:
+    if (not request.user.is_superuser) and cc.creado_por_id == request.user.id:
         return HttpResponseForbidden("No puedes aprobar un cuadro que tú creaste.")
 
     if cc.estado != ComparativeQuote.Status.REVISADO:
         messages.error(request, "Solo se puede aprobar un cuadro en estado REVISADO.")
         return redirect("cc_detail", pk=pk)
 
-    cc.estado = ComparativeQuote.Status.APROBADO
-    cc.aprobado_por = request.user
-    cc.aprobado_en = timezone.now()
-    cc.save(update_fields=["estado", "aprobado_por", "aprobado_en"])
+    ops = list(cc.ordenes_pago.all().order_by("id"))
+    if not ops:
+        messages.error(request, "Este cuadro no tiene Órdenes de Pago generadas.")
+        return redirect("cc_detail", pk=pk)
 
-    messages.success(request, "Cuadro aprobado.")
+    # ✅ Regla: un aprobador solo aprueba OPs ya revisadas
+    ops_no_revisadas = [op for op in ops if op.estado != PaymentOrder.Status.REVISADO]
+    if ops_no_revisadas:
+        messages.error(request, "No puedes aprobar: hay Órdenes de Pago que aún no están REVISADAS.")
+        return redirect("cc_detail", pk=pk)
+
+    now = timezone.now()
+
+    with transaction.atomic():
+        # Aprobar OPs
+        for op in ops:
+            op.estado = PaymentOrder.Status.APROBADO
+            op.aprobado_por = request.user
+            op.aprobado_en = now
+            op.rechazado_por = None
+            op.rechazado_en = None
+            op.save(update_fields=[
+                "estado",
+                "aprobado_por", "aprobado_en",
+                "rechazado_por", "rechazado_en",
+            ])
+
+        # Aprobar CC
+        cc.estado = ComparativeQuote.Status.APROBADO
+        cc.aprobado_por = request.user
+        cc.aprobado_en = now
+        cc.rechazado_por = None
+        cc.rechazado_en = None
+        cc.save(update_fields=[
+            "estado",
+            "aprobado_por", "aprobado_en",
+            "rechazado_por", "rechazado_en",
+        ])
+
+    messages.success(request, "Cuadro y Órdenes de Pago aprobados.")
     return redirect("cc_detail", pk=pk)
 
 
@@ -1108,12 +1181,44 @@ def cc_reject(request, pk):
         messages.error(request, "No puedes rechazar tu propio cuadro.")
         return redirect("cc_detail", pk=cc.pk)
 
-    cc.estado = ComparativeQuote.Status.RECHAZADO
-    cc.rechazado_por = user
-    cc.rechazado_en = timezone.now()
-    cc.aprobado_por = None
-    cc.aprobado_en = None
-    cc.save(update_fields=["estado", "rechazado_por", "rechazado_en", "aprobado_por", "aprobado_en"])
+    ops = list(cc.ordenes_pago.all().order_by("id"))
+    if not ops:
+        messages.error(request, "Este cuadro no tiene Órdenes de Pago generadas.")
+        return redirect("cc_detail", pk=cc.pk)
 
-    messages.success(request, "Cuadro rechazado.")
+    now = timezone.now()
+
+    with transaction.atomic():
+        # Rechazar OPs
+        for op in ops:
+            # Si alguna OP ya está APROBADA, no se rechaza (regla: aprobado no vuelve)
+            if op.estado == PaymentOrder.Status.APROBADO:
+                messages.error(request, "No se puede rechazar: hay Órdenes ya APROBADAS.")
+                return redirect("cc_detail", pk=cc.pk)
+
+        for op in ops:
+            op.estado = PaymentOrder.Status.RECHAZADO
+            op.rechazado_por = user
+            op.rechazado_en = now
+            op.aprobado_por = None
+            op.aprobado_en = None
+            op.save(update_fields=[
+                "estado",
+                "rechazado_por", "rechazado_en",
+                "aprobado_por", "aprobado_en",
+            ])
+
+        # Rechazar CC
+        cc.estado = ComparativeQuote.Status.RECHAZADO
+        cc.rechazado_por = user
+        cc.rechazado_en = now
+        cc.aprobado_por = None
+        cc.aprobado_en = None
+        cc.save(update_fields=[
+            "estado",
+            "rechazado_por", "rechazado_en",
+            "aprobado_por", "aprobado_en",
+        ])
+
+    messages.success(request, "Cuadro y Órdenes de Pago rechazados.")
     return redirect("cc_detail", pk=cc.pk)

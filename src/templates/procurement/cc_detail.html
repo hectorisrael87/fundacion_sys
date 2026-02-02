@@ -417,24 +417,46 @@
 
       {% elif cc.estado == "REVISADO" %}
         {% if is_approver and not is_reviewer %}
+
+          {# Entrada al “círculo” de lectura del aprobador (solo ver) #}
+          {% if ordenes %}
+            {% with ordenes|first as first_op %}
+              {% if first_op %}
+                <a class="btn btn-ghost" href="{% url 'op_detail' first_op.id %}?return_cc={{ cc.pk }}">
+                  👁️ Ver órdenes de pago
+                </a>
+              {% endif %}
+            {% endwith %}
+          {% endif %}
+
+          {# ✅ Acciones en grupo (CC + OPs) #}
           <form method="post" action="{% url 'cc_approve_final' cc.pk %}" class="inline-form">
             {% csrf_token %}
-            <button class="btn btn-primary" type="submit">✅ Aprobar</button>
+            <button class="btn btn-primary" type="submit"
+              onclick="return confirm('¿Aprobar el Cuadro {{ cc.number }} y sus Órdenes de Pago?');">
+              ✅ Aprobar todo
+            </button>
           </form>
 
           <form method="post" action="{% url 'cc_back_to_review' cc.pk %}" class="inline-form">
             {% csrf_token %}
-            <button class="btn" type="submit">↩️ Devolver a revisión</button>
+            <button class="btn btn-ghost" type="submit"
+              onclick="return confirm('¿Devolver el Cuadro {{ cc.number }} y sus Órdenes a revisión?');">
+              ↩️ Devolver a revisión
+            </button>
           </form>
 
           <form method="post" action="{% url 'cc_reject' cc.pk %}" class="inline-form">
             {% csrf_token %}
             <button class="btn btn-danger" type="submit"
-              onclick="return confirm('¿Rechazar el cuadro {{ cc.number }}?');"
-            >❌ Rechazar</button>
+              onclick="return confirm('¿Rechazar el Cuadro {{ cc.number }} y sus Órdenes de Pago?');">
+              ❌ Rechazar todo
+            </button>
           </form>
+
+        {% else %}
+          <span class="muted">⏳ Pendiente de aprobación.</span>
         {% endif %}
-      {% endif %}
 
       {% if user.is_superuser or cc.creado_por_id == user.id %}
         {% if not cc_has_ops %}
