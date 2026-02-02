@@ -420,13 +420,13 @@
 
           {# Entrada al “círculo” de lectura del aprobador (solo ver) #}
           {% if ordenes %}
-            {% with ordenes|first as first_op %}
-              {% if first_op %}
-                <a class="btn btn-ghost" href="{% url 'op_detail' first_op.id %}?return_cc={{ cc.pk }}">
+            {% for op in ordenes %}
+              {% if forloop.first %}
+                <a class="btn btn-ghost" href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
                   👁️ Ver órdenes de pago
                 </a>
               {% endif %}
-            {% endwith %}
+            {% endfor %}
           {% endif %}
 
           {# ✅ Acciones en grupo (CC + OPs) #}
