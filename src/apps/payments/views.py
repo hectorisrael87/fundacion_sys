@@ -217,6 +217,12 @@ def op_detail(request, pk: int):
                 return redirect(f"{reverse('op_detail', kwargs={'pk': op.pk})}?return_cc={return_cc_pk}")
             return redirect("op_detail", pk=op.pk)
 
+            # ✅ Marca “aprobador ya vio OPs del CC” (para habilitar aprobar en grupo)
+            if return_cc_pk and op.cuadro_id == return_cc_pk:
+                if (request.user.is_superuser or is_approver(request.user)) and not is_reviewer(request.user):
+                    request.session[f"cc_seen_ops_{return_cc_pk}"] = True
+
+
     else:
         form = PaymentOrderForm(instance=op)
 

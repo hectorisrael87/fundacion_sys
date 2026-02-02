@@ -310,45 +310,23 @@
     <div class="card">
       <div class="hstack">
 
-        {# =========================
-          CREADOR (BORRADOR)
-          ========================= #}
-        {% if op.estado == "BORRADOR" and puede_editar %}
-          {% if op.creado_por_id == user.id or user.is_superuser %}
+        {% if op.estado == "BORRADOR" and puede_editar and (op.creado_por_id == user.id or user.is_superuser) %}
+          <button class="btn btn-ghost" type="submit" name="action" value="save">💾 Guardar</button>
 
-            <button class="btn btn-ghost" type="submit" name="action" value="save">
-              💾 Guardar
-            </button>
-
-            {# Si venimos desde el CC: círculo guiado (guardar + siguiente / volver) #}
-            {% if return_cc_pk %}
-              {% if next_op_pk %}
-                <button class="btn btn-primary" type="submit" name="action" value="save_next">
-                  💾 Guardar y siguiente →
-                </button>
-              {% else %}
-                <button class="btn btn-primary" type="submit" name="action" value="save_return_cc">
-                  ✓ Guardar y volver al cuadro
-                </button>
-              {% endif %}
+          {% if return_cc_pk %}
+            {% if next_op_pk %}
+              <button class="btn btn-primary" type="submit" name="action" value="save_next">💾 Guardar y siguiente →</button>
             {% else %}
-              {# Si NO venimos del CC, sí permitimos enviar a revisión desde la OP #}
-              <button class="btn btn-primary" type="submit" name="action" value="send_review">
-                📤 Guardar y enviar a revisión
-              </button>
+              <button class="btn btn-primary" type="submit" name="action" value="save_return_cc">✓ Guardar y volver al cuadro</button>
             {% endif %}
-
+          {% else %}
+            <button class="btn btn-primary" type="submit" name="action" value="send_review">📤 Guardar y enviar a revisión</button>
           {% endif %}
         {% endif %}
 
-        {# =========================
-          REVISOR (EN_REVISION): puede corregir y luego marcar revisado
-          ========================= #}
         {% if op.estado == "EN_REVISION" and is_reviewer %}
           {% if puede_editar %}
-            <button class="btn btn-ghost" type="submit" name="action" value="save">
-              💾 Guardar
-            </button>
+            <button class="btn btn-ghost" type="submit" name="action" value="save">💾 Guardar</button>
           {% endif %}
 
           <a class="btn btn-primary"
@@ -362,32 +340,14 @@
           </a>
         {% endif %}
 
-        {# =========================
-          APROBADOR (REVISADO)
-          - Si viene desde CC (return_cc_pk): SOLO lectura (aprueba desde el CC)
-          - Si NO viene desde CC: permite aprobar/rechazar aquí (modo individual)
-          ========================= #}
         {% if op.estado == "REVISADO" and is_approver and not is_reviewer %}
           {% if return_cc_pk %}
-            <span class="muted">
-              👁️ Lectura en grupo: aprueba / devuelve / rechaza desde el Cuadro Comparativo.
-            </span>
+            <span class="muted">👁️ Lectura en grupo: aprueba / devuelve / rechaza desde el Cuadro Comparativo.</span>
           {% else %}
-            <button class="btn btn-primary" type="submit"
-                    formaction="{% url 'op_approve' op.pk %}" formmethod="post">
-              ✅ Aprobar
-            </button>
-
-            <button class="btn btn-ghost" type="submit"
-                    formaction="{% url 'op_back_to_review' op.pk %}" formmethod="post">
-              ↩️ Devolver a revisión
-            </button>
-
-            <button class="btn btn-danger" type="submit"
-                    formaction="{% url 'op_reject' op.pk %}" formmethod="post"
-                    onclick="return confirm('¿Rechazar la OP {{ op.number }}?');">
-              ❌ Rechazar
-            </button>
+            <button class="btn btn-primary" type="submit" formaction="{% url 'op_approve' op.pk %}" formmethod="post">✅ Aprobar</button>
+            <button class="btn btn-ghost" type="submit" formaction="{% url 'op_back_to_review' op.pk %}" formmethod="post">↩️ Devolver a revisión</button>
+            <button class="btn btn-danger" type="submit" formaction="{% url 'op_reject' op.pk %}" formmethod="post"
+                    onclick="return confirm('¿Rechazar la OP {{ op.number }}?');">❌ Rechazar</button>
           {% endif %}
         {% endif %}
 
@@ -397,26 +357,14 @@
           <span class="muted">❌ OP rechazada.</span>
         {% endif %}
 
-        {# =========================
-          Navegación del círculo (CC -> OP1 -> OP2 -> ... -> CC)
-          ========================= #}
         {% if return_cc_pk %}
           <a class="btn btn-ghost" href="{% url 'cc_detail' return_cc_pk %}">← Volver al cuadro</a>
-
           {% if next_op_pk %}
-            <a class="btn btn-primary"
-              href="{% url 'op_detail' next_op_pk %}?return_cc={{ return_cc_pk }}">
-              Siguiente orden →
-            </a>
+            <a class="btn btn-primary" href="{% url 'op_detail' next_op_pk %}?return_cc={{ return_cc_pk }}">Siguiente orden →</a>
           {% else %}
-            <a class="btn btn-primary" href="{% url 'cc_detail' return_cc_pk %}">
-              ✓ Terminar y volver al cuadro
-            </a>
+            <a class="btn btn-primary" href="{% url 'cc_detail' return_cc_pk %}">✓ Terminar y volver al cuadro</a>
           {% endif %}
-        {% endif %}
-
-        {# Volver general #}
-        {% if not return_cc_pk %}
+        {% else %}
           <a class="btn btn-ghost" href="{% url 'op_list' %}">← Volver</a>
         {% endif %}
 

@@ -300,6 +300,8 @@ def cc_detail(request, pk: int):
     if first_pending_op_id is None and ops:
         # fallback: si no hay EN_REVISION pero hay otras, manda a la primera
         first_pending_op_id = ops[0].id
+    
+    approver_seen_ops = bool(request.session.get(f"cc_seen_ops_{cc.pk}", False))
 
     return render(
         request,
@@ -343,7 +345,8 @@ def cc_detail(request, pk: int):
             "ops_total": ops_total,
             "ops_reviewed_count": ops_reviewed_count,
             "ops_pending_count": ops_pending_count,
-
+            "approver_seen_ops": approver_seen_ops,
+    
         },
     )
 
@@ -939,6 +942,12 @@ def cc_approve_final(request, pk):
             "aprobado_por", "aprobado_en",
             "rechazado_por", "rechazado_en",
         ])
+
+    # ✅ Gate: el aprobador debe “ver” las OPs (círculo de lectura) antes de aprobar
+    if (not request.user.is_superuser):
+        if not request.session.get(f"cc_seen_ops_{cc.pk}", False):
+            messages.error(request, "Antes de aprobar, revisa las Órdenes de Pago (botón: “👁️ Ver órdenes de pago”).")
+            return redirect("cc_detail", pk=cc.pk)
 
     messages.success(request, "Cuadro y Órdenes de Pago aprobados.")
     return redirect("cc_detail", pk=pk)
