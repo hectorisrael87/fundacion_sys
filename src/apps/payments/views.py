@@ -177,7 +177,6 @@ def op_detail(request, pk: int):
         and complemento is None
         and op.estado == PaymentOrder.Status.APROBADO
     )
-
     # =========================
     # Guardar / Guardar y enviar a revisión
     # =========================
@@ -192,10 +191,18 @@ def op_detail(request, pk: int):
             form.save()
             messages.success(request, "Orden de Pago actualizada.")
 
+            # ✅ Marca “aprobador ya vio OPs del CC” (por si edita/corrige dentro del círculo)
+            if return_cc_pk and op.cuadro_id == return_cc_pk:
+                if (request.user.is_superuser or is_approver(request.user)) and not is_reviewer(request.user):
+                    request.session[f"cc_seen_ops_{return_cc_pk}"] = True
+
             # 1) Guardar y enviar a revisión (solo si NO estás en círculo)
             if action == "send_review":
                 if return_cc_pk:
-                    messages.error(request, "Esta OP se está completando desde el Cuadro. Envía a revisión desde el Cuadro.")
+                    messages.error(
+                        request,
+                        "Esta OP se está completando desde el Cuadro. Envía a revisión desde el Cuadro."
+                    )
                     return redirect(f"{reverse('op_detail', kwargs={'pk': op.pk})}?return_cc={return_cc_pk}")
                 return redirect("op_send_review", pk=op.pk)
 
@@ -217,14 +224,10 @@ def op_detail(request, pk: int):
                 return redirect(f"{reverse('op_detail', kwargs={'pk': op.pk})}?return_cc={return_cc_pk}")
             return redirect("op_detail", pk=op.pk)
 
-            # ✅ Marca “aprobador ya vio OPs del CC” (para habilitar aprobar en grupo)
-            if return_cc_pk and op.cuadro_id == return_cc_pk:
-                if (request.user.is_superuser or is_approver(request.user)) and not is_reviewer(request.user):
-                    request.session[f"cc_seen_ops_{return_cc_pk}"] = True
-
-
+        # si no es válido cae al render con errores
     else:
         form = PaymentOrderForm(instance=op)
+
 
     return render(
         request,
