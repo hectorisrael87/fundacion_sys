@@ -1232,3 +1232,64 @@ def cc_reject(request, pk):
 
     messages.success(request, "Cuadro y Órdenes de Pago rechazados.")
     return redirect("cc_detail", pk=cc.pk)
+
+@login_required
+def cc_back_to_draft(request, pk):
+    """
+    EN_REVISION -> BORRADOR
+    Lo usa el REVISOR para devolver el CC al creador.
+    """
+    if request.method != "GET":
+        return HttpResponseNotAllowed(["GET"])
+
+    cc = get_object_or_404(ComparativeQuote, pk=pk)
+    user = request.user
+
+    if not (user.is_superuser or is_reviewer(user)):
+        return HttpResponseForbidden("No tienes permiso para devolver a borrador.")
+
+    if cc.estado != ComparativeQuote.Status.EN_REVISION:
+        messages.error(request, "Solo se puede devolver a borrador un cuadro en estado EN_REVISION.")
+        return redirect("cc_detail", pk=cc.pk)
+
+    # (opcional pero recomendado) Si el revisor es el creador, no debería devolverse a sí mismo.
+    if (not user.is_superuser) and cc.creado_por_id == user.id:
+        messages.error(request, "No puedes devolver a borrador un cuadro que tú creaste.")
+        return redirect("cc_detail", pk=cc.pk)
+
+    with transaction.atomic():
+        # CC a BORRADOR y limpiar trazas de revisión/aprobación/rechazo
+        cc.estado = ComparativeQuote.Status.BORRADOR
+        cc.revisado_por = None
+        cc.revisado_en = None
+        cc.aprobado_por = None
+        cc.aprobado_en = None
+        cc.rechazado_por = None
+        cc.rechazado_en = None
+        cc.save(update_fields=[
+            "estado",
+            "revisado_por", "revisado_en",
+            "aprobado_por", "aprobado_en",
+            "rechazado_por", "rechazado_en",
+        ])
+
+        # Mantener consistencia: si el CC vuelve a borrador,
+        # las OPs relacionadas (si NO están aprobadas) vuelven a BORRADOR.
+        for op in cc.ordenes_pago.all():
+            if op.estado != PaymentOrder.Status.APROBADO:
+                op.estado = PaymentOrder.Status.BORRADOR
+                op.revisado_por = None
+                op.revisado_en = None
+                op.aprobado_por = None
+                op.aprobado_en = None
+                op.rechazado_por = None
+                op.rechazado_en = None
+                op.save(update_fields=[
+                    "estado",
+                    "revisado_por", "revisado_en",
+                    "aprobado_por", "aprobado_en",
+                    "rechazado_por", "rechazado_en",
+                ])
+
+    messages.success(request, "Devuelto a borrador.")
+    return redirect("cc_detail", pk=cc.pk)
