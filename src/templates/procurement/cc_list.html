@@ -6,7 +6,15 @@
   <div style="display:flex; justify-content:space-between; align-items:center;">
     <div>
       <h2 style="margin:0;">Cuadros Comparativos</h2>
-      <div class="muted" style="margin-top:4px;">Gestiona y revisa los cuadros comparativos</div>
+      <div class="muted" style="margin-top:4px;">
+        {% if is_reviewer and not is_approver %}
+          Tu cola de trabajo está en “Pendiente” (círculo de revisión por cuadro).
+        {% elif is_approver and not is_reviewer %}
+          Tu cola de trabajo está en “Pendiente” (círculo de lectura/aprobación por cuadro).
+        {% else %}
+          Gestiona y revisa los cuadros comparativos
+        {% endif %}
+      </div>
     </div>
 
     <a class="btn btn-primary" href="{% url 'cc_create' %}">＋ Nuevo Cuadro Comparativo</a>
@@ -42,6 +50,18 @@
 
           <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0;">
             {{ c.item_cotizado }}
+
+            {# ✅ Progreso para roles (solo si hay OPs) #}
+            {% if c.ops_total %}
+              <div class="muted" style="margin-top:4px; font-size:12px;">
+                {% if is_reviewer and c.estado == "EN_REVISION" %}
+                  OP revisadas: <b>{{ c.ops_reviewed_count }}/{{ c.ops_total }}</b>
+                  {% if c.ops_pending_count > 0 %} · Pendientes: {{ c.ops_pending_count }}{% endif %}
+                {% elif is_approver and c.estado == "REVISADO" %}
+                  OP del cuadro: <b>{{ c.ops_total }}</b>
+                {% endif %}
+              </div>
+            {% endif %}
           </td>
 
           <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0;">
@@ -68,7 +88,7 @@
               <span class="badge badge-approved" data-live-status>✓ Aprobado</span>
             {% elif c.estado == "RECHAZADO" %}
               <span class="badge badge-rejected" data-live-status>✗ Rechazado</span>
-              {% else %}
+            {% else %}
               <span class="badge badge-draft" data-live-status>{{ c.get_estado_display }}</span>
             {% endif %}
           </td>
@@ -78,8 +98,41 @@
           </td>
 
           <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0; white-space:nowrap;">
-            <a class="icon-action" title="Ver" href="{% url 'cc_detail' c.pk %}">👁️</a>
+            {# Siempre: ver CC #}
+            <a class="icon-action" title="Ver Cuadro" href="{% url 'cc_detail' c.pk %}">👁️</a>
 
+            {# ✅ Cola de trabajo: solo en pestaña Pendiente y según rol/estado #}
+            {% if status == "pending" %}
+              {% if is_reviewer and not is_approver and c.estado == "EN_REVISION" %}
+                {% if c.next_op_id %}
+                  <a class="btn btn-sm btn-primary" style="margin-left:8px;"
+                     href="{% url 'op_detail' c.next_op_id %}?return_cc={{ c.pk }}">
+                    Continuar revisión →
+                  </a>
+                {% else %}
+                  <a class="btn btn-sm btn-primary" style="margin-left:8px;"
+                     href="{% url 'cc_detail' c.pk %}">
+                    Abrir cuadro →
+                  </a>
+                {% endif %}
+              {% endif %}
+
+              {% if is_approver and not is_reviewer and c.estado == "REVISADO" %}
+                {% if c.next_op_id %}
+                  <a class="btn btn-sm btn-primary" style="margin-left:8px;"
+                     href="{% url 'op_detail' c.next_op_id %}?return_cc={{ c.pk }}">
+                    Revisar OPs →
+                  </a>
+                {% else %}
+                  <a class="btn btn-sm btn-primary" style="margin-left:8px;"
+                     href="{% url 'cc_detail' c.pk %}">
+                    Abrir cuadro →
+                  </a>
+                {% endif %}
+              {% endif %}
+            {% endif %}
+
+            {# Eliminar solo creador en borrador #}
             {% if user.is_superuser or c.creado_por_id == user.id %}
               {% if c.estado == "BORRADOR" %}
                 <form method="post" action="{% url 'cc_delete' c.pk %}" style="display:inline;">
@@ -96,7 +149,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr data-live-id="{{ c.id }}"><td colspan="7" style="padding:10px 8px;">No hay cuadros todavía.</td></tr>
+        <tr><td colspan="7" style="padding:10px 8px;">No hay cuadros todavía.</td></tr>
       {% endfor %}
     </tbody>
   </table>

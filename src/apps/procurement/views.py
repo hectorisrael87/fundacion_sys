@@ -54,7 +54,7 @@ def _op_is_complete(op: PaymentOrder) -> bool:
 def cc_list(request):
     qs = ComparativeQuote.objects.select_related(
         "creado_por", "revisado_por", "aprobado_por"
-    ).order_by("-creado_en")
+    ).prefetch_related("ordenes_pago").order_by("-creado_en")
 
     is_rev = (request.user.is_superuser or is_reviewer(request.user))
     is_app = (request.user.is_superuser or is_approver(request.user))
@@ -77,10 +77,13 @@ def cc_list(request):
     status = (request.GET.get("status") or "all").lower()
 
     if status in ("draft", "borrador"):
-        # Para revisor/aprobador esto mostrará SOLO sus borradores (por la regla de visibilidad)
         qs = qs.filter(estado=ComparativeQuote.Status.BORRADOR)
 
     elif status in ("pending", "pendiente"):
+        # Pendiente significa "lo que te toca":
+        # - Revisor: EN_REVISION
+        # - Aprobador: REVISADO
+        # - Ambos (si tuviera ambos roles): EN_REVISION o REVISADO
         if is_rev and not is_app:
             qs = qs.filter(estado=ComparativeQuote.Status.EN_REVISION)
         elif is_app and not is_rev:
@@ -96,19 +99,46 @@ def cc_list(request):
     else:
         status = "all"
 
+    cuadros = list(qs)
+
+    # =========================
+    # ✅ "Cola de trabajo" por CC (para círculo)
+    # =========================
+    for cc in cuadros:
+        ops = sorted(list(cc.ordenes_pago.all()), key=lambda x: x.id)
+
+        cc.ops_total = len(ops)
+        cc.ops_reviewed_count = sum(1 for op in ops if op.estado == PaymentOrder.Status.REVISADO)
+        cc.ops_pending_count = cc.ops_total - cc.ops_reviewed_count
+
+        # next_op_id:
+        # - Revisor: primera OP EN_REVISION, si no hay, primera OP
+        # - Aprobador: primera OP (entrada al círculo de lectura)
+        cc.next_op_id = None
+        if ops:
+            if is_rev and not is_app:
+                first_pending = None
+                for op in ops:
+                    if op.estado == PaymentOrder.Status.EN_REVISION:
+                        first_pending = op
+                        break
+                cc.next_op_id = (first_pending.id if first_pending else ops[0].id)
+            elif is_app and not is_rev:
+                cc.next_op_id = ops[0].id
+            else:
+                # fallback (si tuviera ambos roles): preferimos llevarlo a la primera
+                cc.next_op_id = ops[0].id
+
     return render(
         request,
         "procurement/cc_list.html",
         {
-            "cuadros": qs,
+            "cuadros": cuadros,
             "is_reviewer": is_rev,
             "is_approver": is_app,
             "status": status,
         },
     )
-
-
-
 
 @login_required
 def cc_create(request):
