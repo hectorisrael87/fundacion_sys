@@ -109,16 +109,27 @@ def op_detail(request, pk: int):
             except ValueError:
                 pass
 
-            # ✅ Círculo de lectura (APROBADOR): al entrar por GET desde el CC, marcamos sesión
+            # ✅ Círculo de lectura (APROBADOR):
+            # Guardamos en sesión una LISTA de OP IDs vistas (compatible con el boolean antiguo).
             if (request.user.is_superuser or is_approver(request.user)) and not is_reviewer(request.user):
-                request.session[f"cc_seen_ops_{return_cc_pk}"] = True
+                seen_key = f"cc_seen_ops_{return_cc_pk}"
+                seen_val = request.session.get(seen_key, [])
+
+                # compatibilidad: antes era True/False
+                if seen_val is True:
+                    seen_val = []
+                if not isinstance(seen_val, list):
+                    seen_val = []
+
+                if op.id not in seen_val:
+                    seen_val.append(op.id)
+
+                request.session[seen_key] = seen_val
                 request.session.modified = True
         else:
             # si no coincide, ignoramos navegación
             return_cc_pk = None
             next_op_pk = None
-
-
 
     # Si está en BORRADOR, solo el creador o superuser pueden verlo
     if op.estado == PaymentOrder.Status.BORRADOR and not (
@@ -200,10 +211,21 @@ def op_detail(request, pk: int):
             form.save()
             messages.success(request, "Orden de Pago actualizada.")
 
-            # ✅ Si estamos en círculo, mantenemos la marca (por si edita/corrige)
+            # ✅ Si estamos en círculo, mantenemos/actualizamos la marca de lectura
             if return_cc_pk and op.cuadro_id == return_cc_pk:
                 if (request.user.is_superuser or is_approver(request.user)) and not is_reviewer(request.user):
-                    request.session[f"cc_seen_ops_{return_cc_pk}"] = True
+                    seen_key = f"cc_seen_ops_{return_cc_pk}"
+                    seen_val = request.session.get(seen_key, [])
+
+                    if seen_val is True:
+                        seen_val = []
+                    if not isinstance(seen_val, list):
+                        seen_val = []
+
+                    if op.id not in seen_val:
+                        seen_val.append(op.id)
+
+                    request.session[seen_key] = seen_val
                     request.session.modified = True
 
             # 1) Guardar y enviar a revisión (solo si NO estás en círculo)
@@ -256,7 +278,7 @@ def op_detail(request, pk: int):
             "is_reviewer": (request.user.is_superuser or is_reviewer(request.user)),
             "is_approver": (request.user.is_superuser or is_approver(request.user)),
             "return_cc_pk": return_cc_pk,
-            "next_op_pk": next_op_pk,         
+            "next_op_pk": next_op_pk,
         },
     )
 
@@ -615,6 +637,7 @@ def op_back_to_review(request, pk):
 
     messages.success(request, "OP devuelta a revisión.")
     return redirect("op_detail", pk=op.pk)
+
 @login_required
 def op_reject(request, pk):
     if request.method != "POST":

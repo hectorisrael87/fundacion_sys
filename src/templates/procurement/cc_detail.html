@@ -41,7 +41,7 @@
         {% if ordenes %}
           <span class="hstack mt-xs">
             {% for op in ordenes %}
-              <a class="btn btn-sm btn-softcyan" href="{% url 'op_detail' op.id %}">
+              <a class="btn btn-sm btn-softcyan" href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
                 {{ op.number }}
               </a>
             {% endfor %}
@@ -506,7 +506,7 @@
                 <th style="width:160px;">Número</th>
                 <th>Proveedor</th>
                 <th style="width:180px;">Estado</th>
-                <th style="width:120px;">Acciones</th>
+                <th style="width:140px;">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -520,6 +520,9 @@
                         <td>{{ op.proveedor.nombre_empresa|default:"-" }}</td>
                         <td>✅ Completa</td>
                         <td>
+                          {% if op.id in seen_op_ids %}
+                            <span class="tag tag-ok">👁️ Vista</span>
+                          {% endif %}
                           <a class="btn btn-ghost btn-sm"
                             href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
                             👁️ Ver
@@ -532,6 +535,9 @@
                         <td>{{ op.proveedor.nombre_empresa|default:"-" }}</td>
                         <td>⚠️ Incompleta</td>
                         <td>
+                          {% if op.id in seen_op_ids %}
+                            <span class="tag tag-ok">👁️ Vista</span>
+                          {% endif %}
                           <a class="btn btn-primary btn-sm"
                             href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
                             🛠️ Completar
@@ -545,6 +551,9 @@
                       <td>{{ op.proveedor.nombre_empresa|default:"-" }}</td>
                       <td>✅ Completa</td>
                       <td>
+                        {% if op.id in seen_op_ids %}
+                          <span class="tag tag-ok">👁️ Vista</span>
+                        {% endif %}
                         <a class="btn btn-ghost btn-sm"
                           href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
                           👁️ Ver
@@ -558,6 +567,9 @@
                     <td>{{ op.proveedor.nombre_empresa|default:"-" }}</td>
                     <td>⚠️ Incompleta</td>
                     <td>
+                      {% if op.id in seen_op_ids %}
+                        <span class="tag tag-ok">👁️ Vista</span>
+                      {% endif %}
                       <a class="btn btn-primary btn-sm"
                         href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
                         🛠️ Completar
