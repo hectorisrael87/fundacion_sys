@@ -413,50 +413,71 @@
         {% else %}
           <span class="muted">⏳ Pendiente de revisión.</span>
         {% endif %}
-
-
       {% elif cc.estado == "REVISADO" %}
         {% if is_approver and not is_reviewer %}
 
-          {# Entrada al “círculo” de lectura del aprobador (solo ver) #}
-          {% if ordenes %}
-            {% for op in ordenes %}
-              {% if forloop.first %}
-                <a class="btn btn-ghost" href="{% url 'op_detail' op.id %}?return_cc={{ cc.pk }}">
-                  👁️ Ver órdenes de pago
-                </a>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
+          {% if approver_seen_ops or user.is_superuser %}
 
-          {# ✅ Acciones en grupo (CC + OPs) #}
-          <form method="post" action="{% url 'cc_approve_final' cc.pk %}" class="inline-form">
-            {% csrf_token %}
-            <button class="btn btn-primary" type="submit"
-              onclick="return confirm('¿Aprobar el Cuadro {{ cc.number }} y sus Órdenes de Pago?');">
+            {% if first_op_id %}
+              <a class="btn btn-ghost" href="{% url 'op_detail' first_op_id %}?return_cc={{ cc.pk }}">
+                👁️ Ver órdenes de pago
+              </a>
+            {% endif %}
+
+            <form method="post" action="{% url 'cc_approve_final' cc.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button class="btn btn-primary" type="submit"
+                onclick="return confirm('¿Aprobar el Cuadro {{ cc.number }} y sus Órdenes de Pago?');">
+                ✅ Aprobar todo
+              </button>
+            </form>
+
+            <form method="post" action="{% url 'cc_back_to_review' cc.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button class="btn btn-ghost" type="submit"
+                onclick="return confirm('¿Devolver el Cuadro {{ cc.number }} y sus Órdenes a revisión?');">
+                ↩️ Devolver a revisión
+              </button>
+            </form>
+
+            <form method="post" action="{% url 'cc_reject' cc.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button class="btn btn-danger" type="submit"
+                onclick="return confirm('¿Rechazar el Cuadro {{ cc.number }} y sus Órdenes de Pago?');">
+                ❌ Rechazar todo
+              </button>
+            </form>
+
+          {% else %}
+
+            {% if first_op_id %}
+              <a class="btn btn-ghost" href="{% url 'op_detail' first_op_id %}?return_cc={{ cc.pk }}">
+                👁️ Revisar órdenes de pago
+              </a>
+            {% endif %}
+
+            <span class="btn btn-primary btn-sm" style="opacity:.5; pointer-events:none;">
               ✅ Aprobar todo
-            </button>
-          </form>
+            </span>
 
-          <form method="post" action="{% url 'cc_back_to_review' cc.pk %}" class="inline-form">
-            {% csrf_token %}
-            <button class="btn btn-ghost" type="submit"
-              onclick="return confirm('¿Devolver el Cuadro {{ cc.number }} y sus Órdenes a revisión?');">
+            <span class="btn btn-ghost btn-sm" style="opacity:.5; pointer-events:none;">
               ↩️ Devolver a revisión
-            </button>
-          </form>
+            </span>
 
-          <form method="post" action="{% url 'cc_reject' cc.pk %}" class="inline-form">
-            {% csrf_token %}
-            <button class="btn btn-danger" type="submit"
-              onclick="return confirm('¿Rechazar el Cuadro {{ cc.number }} y sus Órdenes de Pago?');">
+            <span class="btn btn-danger btn-sm" style="opacity:.5; pointer-events:none;">
               ❌ Rechazar todo
-            </button>
-          </form>
+            </span>
+
+            <span class="muted" style="margin-left:8px;">
+              Antes de aprobar, revisa al menos una orden (círculo de lectura).
+            </span>
+
+          {% endif %}
 
         {% else %}
           <span class="muted">⏳ Pendiente de aprobación.</span>
         {% endif %}
+          
       {% endif %} {# ✅ cierre del if cc.estado (BORRADOR/EN_REVISION/REVISADO) #}
       {% if user.is_superuser or cc.creado_por_id == user.id %}
         {% if not cc_has_ops %}

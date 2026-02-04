@@ -99,17 +99,26 @@ def op_detail(request, pk: int):
 
         # seguridad: solo si coincide con el CC real de esta OP
         if op.cuadro_id == return_cc_pk:
-            op_ids = list(op.cuadro.ordenes_pago.order_by("id").values_list("id", flat=True))
+            op_ids = list(
+                op.cuadro.ordenes_pago.order_by("id").values_list("id", flat=True)
+            )
             try:
                 idx = op_ids.index(op.id)
                 if idx < len(op_ids) - 1:
                     next_op_pk = op_ids[idx + 1]
             except ValueError:
                 pass
+
+            # ✅ Círculo de lectura (APROBADOR): al entrar por GET desde el CC, marcamos sesión
+            if (request.user.is_superuser or is_approver(request.user)) and not is_reviewer(request.user):
+                request.session[f"cc_seen_ops_{return_cc_pk}"] = True
+                request.session.modified = True
         else:
             # si no coincide, ignoramos navegación
             return_cc_pk = None
             next_op_pk = None
+
+
 
     # Si está en BORRADOR, solo el creador o superuser pueden verlo
     if op.estado == PaymentOrder.Status.BORRADOR and not (
@@ -191,10 +200,11 @@ def op_detail(request, pk: int):
             form.save()
             messages.success(request, "Orden de Pago actualizada.")
 
-            # ✅ Marca “aprobador ya vio OPs del CC” (por si edita/corrige dentro del círculo)
+            # ✅ Si estamos en círculo, mantenemos la marca (por si edita/corrige)
             if return_cc_pk and op.cuadro_id == return_cc_pk:
                 if (request.user.is_superuser or is_approver(request.user)) and not is_reviewer(request.user):
                     request.session[f"cc_seen_ops_{return_cc_pk}"] = True
+                    request.session.modified = True
 
             # 1) Guardar y enviar a revisión (solo si NO estás en círculo)
             if action == "send_review":
@@ -219,7 +229,7 @@ def op_detail(request, pk: int):
                 if return_cc_pk and op.cuadro_id == return_cc_pk:
                     return redirect("cc_detail", pk=return_cc_pk)
 
-            # 4) Guardar normal
+            # 4) Guardar normal (preservando return_cc si aplica)
             if return_cc_pk:
                 return redirect(f"{reverse('op_detail', kwargs={'pk': op.pk})}?return_cc={return_cc_pk}")
             return redirect("op_detail", pk=op.pk)
@@ -227,7 +237,6 @@ def op_detail(request, pk: int):
         # si no es válido cae al render con errores
     else:
         form = PaymentOrderForm(instance=op)
-
 
     return render(
         request,
@@ -247,7 +256,7 @@ def op_detail(request, pk: int):
             "is_reviewer": (request.user.is_superuser or is_reviewer(request.user)),
             "is_approver": (request.user.is_superuser or is_approver(request.user)),
             "return_cc_pk": return_cc_pk,
-            "next_op_pk": next_op_pk,
+            "next_op_pk": next_op_pk,         
         },
     )
 

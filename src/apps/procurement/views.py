@@ -246,6 +246,8 @@ def cc_detail(request, pk: int):
     # OPs del cuadro (usar UNA sola vez)
     # =========================
     ops = list(cc.ordenes_pago.all().order_by("id"))
+    first_op_id = ops[0].id if ops else None
+    approver_seen_ops = bool(request.session.get(f"cc_seen_ops_{cc.pk}", False))
 
     # =========================
     # Checklist para enviar a revisión (validación UI)
@@ -297,10 +299,7 @@ def cc_detail(request, pk: int):
             break
 
     if first_pending_op_id is None and ops:
-        # fallback: si no hay EN_REVISION pero hay otras, manda a la primera
         first_pending_op_id = ops[0].id
-    
-    approver_seen_ops = bool(request.session.get(f"cc_seen_ops_{cc.pk}", False))
 
     return render(
         request,
@@ -344,8 +343,10 @@ def cc_detail(request, pk: int):
             "ops_total": ops_total,
             "ops_reviewed_count": ops_reviewed_count,
             "ops_pending_count": ops_pending_count,
+
+            # ✅ Aprobador (círculo lectura)
             "approver_seen_ops": approver_seen_ops,
-    
+            "first_op_id": first_op_id,
         },
     )
 
