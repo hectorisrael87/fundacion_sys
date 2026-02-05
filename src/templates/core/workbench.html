@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+{% block title %}Bandeja - Mi trabajo{% endblock %}
+
+{% block content %}
+<style>
+  .hero{
+    background:linear-gradient(135deg, rgba(37,99,235,.10), rgba(6,182,212,.10));
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow:var(--shadow);
+  }
+  .hero h1{margin:0;font-size:22px}
+  .hero p{margin:6px 0 0;color:var(--muted)}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:14px;
+    margin-top:14px;
+  }
+  .col-12{grid-column:span 12}
+  .col-8{grid-column:span 8}
+  .col-6{grid-column:span 6}
+  .col-4{grid-column:span 4}
+
+  @media (max-width: 980px){
+    .col-8,.col-6,.col-4{grid-column:span 12}
+  }
+
+  .cardx{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:14px;
+    box-shadow:var(--shadow);
+  }
+  .cardsum{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:10px;
+    padding:14px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:var(--card);
+    box-shadow:var(--shadow);
+  }
+  .cardsum .k{color:var(--muted);font-size:12px}
+  .cardsum .v{font-size:22px;font-weight:800}
+  .btnx{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:10px 12px;
+    border-radius:12px;
+    text-decoration:none;
+    border:1px solid var(--line);
+    background:#fff;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .btnx.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  .btnx.primary:hover{background:var(--primary-2)}
+  .btnx.ghost:hover{background:#f1f5f9}
+
+  .list{margin-top:10px}
+  .row{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    gap:10px;
+    padding:12px 10px;
+    border-top:1px solid var(--line);
+  }
+  .row:first-child{border-top:0}
+  .title{font-weight:800}
+  .meta{color:var(--muted);font-size:12px;margin-top:2px}
+  .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+  .pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#eef2ff;color:#3730a3}
+</style>
+
+<div class="hero">
+  <h1>¡Bienvenido de nuevo, {{ user.first_name|default:user.username }}!</h1>
+  <p>
+    {% if is_reviewer and not is_approver %}
+      Aquí está tu cola de trabajo: revisa cuadros en círculo y marca como revisado cuando completes todas las OP.
+    {% elif is_approver and not is_reviewer %}
+      Aquí está tu cola de trabajo: revisa al menos una OP del cuadro y luego aprueba/devolver/rechazar en grupo.
+    {% else %}
+      Administra tus documentos y da seguimiento al flujo.
+    {% endif %}
+  </p>
+</div>
+
+<div class="grid">
+  <!-- Resumen -->
+  <div class="col-4">
+    <div class="cardsum">
+      <div>
+        <div class="k">Cuadros pendientes</div>
+        <div class="v">{{ summary.cc_pending_review|add:summary.cc_pending_approve }}</div>
+      </div>
+      <div class="pill">Procurement</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="cardsum">
+      <div>
+        <div class="k">OP sueltas pendientes</div>
+        <div class="v">{{ summary.op_pending_review|add:summary.op_pending_approve }}</div>
+      </div>
+      <div class="pill">Payments</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="cardsum">
+      <div>
+        <div class="k">Mis borradores</div>
+        <div class="v">{{ summary.my_cc_drafts|add:summary.my_op_drafts }}</div>
+      </div>
+      <div class="pill">Creador</div>
+    </div>
+  </div>
+
+  <!-- Acciones rápidas -->
+  <div class="col-12">
+    <div class="cardx">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <div>
+          <div class="title">Acciones rápidas</div>
+          <div class="meta">Crea o entra directo a lo que te toca</div>
+        </div>
+
+        <div class="right">
+          {% if is_creator %}
+            <a class="btnx primary" href="{% url 'cc_create' %}">＋ Nuevo Cuadro Comparativo</a>
+          {% endif %}
+          <a class="btnx ghost" href="{% url 'cc_list' %}?status=pending">Ver Cuadros Pendientes</a>
+          <a class="btnx ghost" href="{% url 'op_list' %}?status=pending">Ver OP Pendientes</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cola Revisor -->
+  {% if is_reviewer %}
+  <div class="col-6">
+    <div class="cardx">
+      <div class="title">Cuadros por revisar</div>
+      <div class="meta">Estado: EN_REVISION (círculo CC → OPs)</div>
+
+      <div class="list">
+        {% for cc in pending_cc_review %}
+          <div class="row">
+            <div>
+              <div class="title">{{ cc.number }} · {{ cc.item_cotizado }}</div>
+              <div class="meta">Creador: {{ cc.creado_por.get_full_name|default:cc.creado_por.username }}</div>
+            </div>
+            <div class="right">
+              <a class="btnx ghost" href="{% url 'cc_detail' cc.pk %}">Abrir</a>
+              {# Continuar revisión: empieza por el CC (el botón real lo pondremos en cc_list como ya hablamos) #}
+              <a class="btnx primary" href="{% url 'cc_detail' cc.pk %}">Continuar →</a>
+            </div>
+          </div>
+        {% empty %}
+          <div class="meta" style="padding:10px;">No tienes cuadros pendientes de revisión.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Cola Aprobador -->
+  {% if is_approver %}
+  <div class="col-6">
+    <div class="cardx">
+      <div class="title">Cuadros por aprobar</div>
+      <div class="meta">Estado: REVISADO (círculo de lectura + acciones en grupo)</div>
+
+      <div class="list">
+        {% for cc in pending_cc_approve %}
+          <div class="row">
+            <div>
+              <div class="title">{{ cc.number }} · {{ cc.item_cotizado }}</div>
+              <div class="meta">Creador: {{ cc.creado_por.get_full_name|default:cc.creado_por.username }}</div>
+            </div>
+            <div class="right">
+              <a class="btnx ghost" href="{% url 'cc_detail' cc.pk %}">Abrir</a>
+              <a class="btnx primary" href="{% url 'cc_detail' cc.pk %}">Revisar →</a>
+            </div>
+          </div>
+        {% empty %}
+          <div class="meta" style="padding:10px;">No tienes cuadros pendientes de aprobación.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- OP sueltas (solo si existen) -->
+  {% if is_reviewer %}
+  <div class="col-6">
+    <div class="cardx">
+      <div class="title">OP sueltas por revisar</div>
+      <div class="meta">Solo órdenes SIN cuadro (para no duplicar el círculo)</div>
+
+      <div class="list">
+        {% for op in pending_op_review %}
+          <div class="row">
+            <div>
+              <div class="title">{{ op.number }} · {{ op.proveedor.nombre_empresa|default:"-" }}</div>
+              <div class="meta">Creador: {{ op.creado_por.get_full_name|default:op.creado_por.username }}</div>
+            </div>
+            <div class="right">
+              <a class="btnx primary" href="{% url 'op_detail' op.pk %}">Revisar →</a>
+            </div>
+          </div>
+        {% empty %}
+          <div class="meta" style="padding:10px;">No tienes OP sueltas pendientes.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if is_approver %}
+  <div class="col-6">
+    <div class="cardx">
+      <div class="title">OP sueltas por aprobar</div>
+      <div class="meta">Solo órdenes SIN cuadro</div>
+
+      <div class="list">
+        {% for op in pending_op_approve %}
+          <div class="row">
+            <div>
+              <div class="title">{{ op.number }} · {{ op.proveedor.nombre_empresa|default:"-" }}</div>
+              <div class="meta">Creador: {{ op.creado_por.get_full_name|default:op.creado_por.username }}</div>
+            </div>
+            <div class="right">
+              <a class="btnx primary" href="{% url 'op_detail' op.pk %}">Aprobar →</a>
+            </div>
+          </div>
+        {% empty %}
+          <div class="meta" style="padding:10px;">No tienes OP sueltas pendientes.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Creador: borradores/rechazados -->
+  {% if is_creator %}
+  <div class="col-6">
+    <div class="cardx">
+      <div class="title">Mis borradores</div>
+      <div class="meta">Termina y envía a revisión</div>
+
+      <div class="list">
+        {% for cc in my_cc_drafts %}
+          <div class="row">
+            <div>
+              <div class="title">{{ cc.number }} · {{ cc.item_cotizado }}</div>
+              <div class="meta">Cuadro comparativo (BORRADOR)</div>
+            </div>
+            <div class="right">
+              <a class="btnx primary" href="{% url 'cc_detail' cc.pk %}">Continuar →</a>
+            </div>
+          </div>
+        {% empty %}
+          <div class="meta" style="padding:10px;">No tienes cuadros en borrador.</div>
+        {% endfor %}
+
+        {% for op in my_op_drafts %}
+          <div class="row">
+            <div>
+              <div class="title">{{ op.number }} · {{ op.proveedor.nombre_empresa|default:"-" }}</div>
+              <div class="meta">Orden de pago (BORRADOR)</div>
+            </div>
+            <div class="right">
+              <a class="btnx primary" href="{% url 'op_detail' op.pk %}">Continuar →</a>
+            </div>
+          </div>
+        {% empty %}
+          {# nada #}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6">
+    <div class="cardx">
+      <div class="title">Rechazados</div>
+      <div class="meta">Corrige y vuelve a enviar</div>
+
+      <div class="list">
+        {% for cc in my_cc_rejected %}
+          <div class="row">
+            <div>
+              <div class="title">{{ cc.number }} · {{ cc.item_cotizado }}</div>
+              <div class="meta">Cuadro (RECHAZADO)</div>
+            </div>
+            <div class="right">
+              <a class="btnx primary" href="{% url 'cc_detail' cc.pk %}">Corregir →</a>
+            </div>
+          </div>
+        {% empty %}
+          <div class="meta" style="padding:10px;">No tienes cuadros rechazados.</div>
+        {% endfor %}
+
+        {% for op in my_op_rejected %}
+          <div class="row">
+            <div>
+              <div class="title">{{ op.number }} · {{ op.proveedor.nombre_empresa|default:"-" }}</div>
+              <div class="meta">OP (RECHAZADA)</div>
+            </div>
+            <div class="right">
+              <a class="btnx primary" href="{% url 'op_detail' op.pk %}">Corregir →</a>
+            </div>
+          </div>
+        {% empty %}
+          {# nada #}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

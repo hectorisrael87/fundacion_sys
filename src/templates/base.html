@@ -2,80 +2,272 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}Sistema Fundación{% endblock %}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Sistema ADM{% endblock %}</title>
+
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --line:#e5e7eb;
+      --primary:#2563eb;
+      --primary-2:#1d4ed8;
+      --shadow:0 10px 30px rgba(2,6,23,.08);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;background:var(--bg);color:var(--text)}
+    a{color:inherit}
+    .app{min-height:100vh;display:flex}
+
+    /* Sidebar */
+    .sidebar{
+      width:280px;
+      background:var(--card);
+      border-right:1px solid var(--line);
+      position:sticky; top:0; height:100vh;
+      padding:16px;
+    }
+    .brand{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:12px}
+    .brand .logo{
+      width:38px;height:38px;border-radius:12px;
+      background:linear-gradient(135deg,var(--primary),#06b6d4);
+      display:grid;place-items:center;color:white;font-weight:800;
+      box-shadow:0 10px 20px rgba(37,99,235,.25);
+    }
+    .brand .t1{font-weight:800;line-height:1}
+    .brand .t2{font-size:12px;color:var(--muted);margin-top:2px}
+
+    .nav{margin-top:14px}
+    .nav-group{margin-top:14px}
+    .nav-title{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:8px}
+    .nav a{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:10px;
+      padding:10px 10px;
+      border-radius:12px;
+      text-decoration:none;
+      color:var(--text);
+    }
+    .nav a:hover{background:#f1f5f9}
+    .nav a.active{background:rgba(37,99,235,.10);color:var(--primary)}
+    .badge{
+      font-size:12px;
+      padding:2px 8px;
+      border-radius:999px;
+      background:#e2e8f0;
+      color:#334155;
+    }
+    .badge.primary{background:rgba(37,99,235,.12);color:var(--primary)}
+    .badge.warn{background:rgba(245,158,11,.18);color:#92400e}
+    .badge.ok{background:rgba(34,197,94,.16);color:#166534}
+
+    /* Content area */
+    .main{flex:1;display:flex;flex-direction:column;min-width:0}
+
+    /* Topbar */
+    .topbar{
+      height:64px;
+      background:var(--card);
+      border-bottom:1px solid var(--line);
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 16px;
+      position:sticky; top:0; z-index:10;
+    }
+    .top-left{display:flex;align-items:center;gap:10px}
+    .hamburger{
+      display:none;
+      width:40px;height:40px;border-radius:12px;
+      border:1px solid var(--line);
+      background:transparent; cursor:pointer;
+    }
+    .search{
+      width:min(520px, 55vw);
+      display:flex;align-items:center;gap:10px;
+      border:1px solid var(--line);
+      background:#f8fafc;
+      border-radius:14px;
+      padding:10px 12px;
+    }
+    .search input{
+      border:0;outline:0;background:transparent;
+      width:100%;
+      font-size:14px;
+    }
+    .top-actions{display:flex;align-items:center;gap:10px}
+    .icon-btn{
+      width:40px;height:40px;border-radius:12px;
+      border:1px solid var(--line);
+      background:transparent; cursor:pointer;
+      display:grid;place-items:center;
+    }
+    .profile{
+      display:flex;align-items:center;gap:10px;
+      padding:6px 10px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:#fff;
+    }
+    .dot{width:8px;height:8px;border-radius:999px;background:#22c55e}
+    .profile .name{font-size:14px;font-weight:600}
+    .profile .role{font-size:12px;color:var(--muted);margin-top:-2px}
+
+    /* Page container */
+    .page{padding:18px;max-width:1200px;width:100%;margin:0 auto}
+
+    /* Responsive */
+    .overlay{
+      display:none;
+      position:fixed;inset:0;background:rgba(15,23,42,.45);
+      z-index:20;
+    }
+    @media (max-width: 980px){
+      .sidebar{
+        position:fixed;left:0;top:0;height:100vh;
+        transform:translateX(-105%);
+        transition:transform .22s ease;
+        z-index:30;
+        box-shadow:var(--shadow);
+      }
+      .sidebar.open{transform:translateX(0)}
+      .overlay.show{display:block}
+      .hamburger{display:grid;place-items:center}
+      .search{width:min(520px, 45vw)}
+    }
+  </style>
 </head>
+
 <body>
+<div class="app">
+  <div class="overlay" id="overlay" onclick="toggleSidebar(false)"></div>
 
-  <header class="topbar">
-    <div class="topbar-left">
-      <div class="brand">
-        <span class="brand-badge">SYS</span>
-        <div class="brand-text">
-          <div class="brand-title">Sistema ADM</div>
-          <div class="brand-subtitle">Fundacion Natura Bolivia</div>
-        </div>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">SYS</div>
+      <div>
+        <div class="t1">Sistema ADM</div>
+        <div class="t2">Fundación Natura Bolivia</div>
       </div>
     </div>
-    <div class="topbar-right">
-      {% if user.is_authenticated %}
-        <div class="userchip">
-          <span class="userdot"></span>
-          <span class="username">{{ user.get_full_name|default:user.username }}</span>
-        </div>
 
-        <a class="btn btn-sm " href="{% url 'password_change' %}">⚙️ Cuenta</a>
+    <nav class="nav">
 
-        <form method="post" action="{% url 'logout' %}" class="inline-form">
-          {% csrf_token %}
-          <button class="linkbtn btn btn-sm " type="submit">Salir</button>
-        </form>
+      <div class="nav-group">
+        <div class="nav-title">Inicio</div>
+        <a href="{% url 'workbench' %}" class="{% if request.resolver_match.url_name == 'workbench' %}active{% endif %}">
+          <span>📥 Bandeja (Mi trabajo)</span>
+          {% if summary %}
+            {% with p=summary.cc_pending_review|add:summary.cc_pending_approve|add:summary.op_pending_review|add:summary.op_pending_approve %}
+              {% if p %}
+                <span class="badge primary">{{ p }}</span>
+              {% endif %}
+            {% endwith %}
+          {% endif %}
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">Adquisiciones</div>
+        <a href="{% url 'cc_list' %}" class="{% if request.resolver_match.url_name == 'cc_list' %}active{% endif %}">
+          <span>📄 Cuadros comparativos</span>
+        </a>
+        <a href="{% url 'op_list' %}" class="{% if request.resolver_match.url_name == 'op_list' %}active{% endif %}">
+          <span>💳 Órdenes de pago</span>
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">Finanzas (próximo)</div>
+        <a href="#" onclick="return false" style="opacity:.55; cursor:not-allowed;">
+          <span>💰 Solicitudes de fondos</span>
+          <span class="badge">Pronto</span>
+        </a>
+        <a href="#" onclick="return false" style="opacity:.55; cursor:not-allowed;">
+          <span>🧾 Descargos / rendiciones</span>
+          <span class="badge">Pronto</span>
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">Catálogos</div>
+        <a href="{% url 'provider_list' %}" class="{% if request.resolver_match.url_name == 'provider_list' %}active{% endif %}">
+          <span>🏢 Proveedores</span>
+        </a>
+        <a href="{% url 'product_list' %}" class="{% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">
+          <span>📦 Productos</span>
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">Reportes</div>
+        <a href="#" onclick="return false" style="opacity:.55; cursor:not-allowed;">
+          <span>📊 Reportes</span>
+          <span class="badge">Pronto</span>
+        </a>
+      </div>
+
+      {% if user.is_superuser %}
+      <div class="nav-group">
+        <div class="nav-title">Ajustes</div>
+        <a href="{% url 'admin:index' %}">
+          <span>⚙️ Administración</span>
+        </a>
+      </div>
       {% endif %}
-    </div>
 
-  </header>
-  <div class="layout">
-    {% if user.is_authenticated %}
-      <aside class="sidebar">
-        <nav class="nav">
-          <a class="nav-link" href="{% url 'home' %}">🏠 Dashboard</a>
-          <a class="nav-link" href="{% url 'cc_list' %}">
-            📄 Cuadros comparativos
-            <span class="nav-badge" id="nav-badge-cc" hidden></span>
-          </a>
-          <a class="nav-link" href="{% url 'op_list' %}">
-            💳 Órdenes de pago
-            <span class="nav-badge" id="nav-badge-op" hidden></span>
-          </a>
-          <a class="nav-link" href="{% url 'provider_list' %}">🏭 Proveedores</a>
-          <a class="nav-link" href="/admin/">⚙️ Administración</a>
-        </nav>
+    </nav>
+  </aside>
 
-        <div class="sidebar-footer">
-          <div class="small muted">{{ user.get_full_name|default:user.username }}</div>
-          <div class="small muted">Sesión activa</div>
-          
+  <div class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="hamburger" type="button" onclick="toggleSidebar(true)">☰</button>
+
+        <div class="search">
+          🔎 <input type="text" placeholder="Buscar... (próximo)" disabled>
         </div>
-      </aside>
-    {% endif %}
-
-    <main class="content {% if not user.is_authenticated %}content-full{% endif %}">
-      <div class="container {% if not user.is_authenticated %}auth-container{% endif %}">
-        {% if messages %}
-          <ul class="messages">
-            {% for message in messages %}
-              <li class="msg {{ message.tags }}">{{ message }}</li>
-            {% endfor %}
-          </ul>
-        {% endif %}
-
-        {% block content %}{% endblock %}
       </div>
+
+      <div class="top-actions">
+        <button class="icon-btn" type="button" title="Notificaciones (próximo)" disabled>🔔</button>
+
+        <div class="profile">
+          <span class="dot"></span>
+          <div>
+            <div class="name">{{ user.get_full_name|default:user.username }}</div>
+            <div class="role">
+              {% if user.is_superuser %}Admin{% elif is_reviewer and not is_approver %}Revisor{% elif is_approver and not is_reviewer %}Aprobador{% else %}Usuario{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <a class="icon-btn" href="{% url 'logout' %}" title="Salir">⎋</a>
+      </div>
+    </header>
+
+    <main class="page">
+      {% block content %}{% endblock %}
     </main>
   </div>
+</div>
 
-<script src="{% static 'js/app.js' %}"></script>
+<script>
+  function toggleSidebar(open){
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    if(!sidebar || !overlay) return;
+    if(open){
+      sidebar.classList.add('open');
+      overlay.classList.add('show');
+    } else {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('show');
+    }
+  }
+</script>
 </body>
 </html>
