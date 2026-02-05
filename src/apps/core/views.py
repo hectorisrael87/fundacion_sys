@@ -1,11 +1,11 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import render
-from django.db.models import Q
+from django.shortcuts import render, redirect
+
 from apps.core.permissions import is_creator, is_reviewer, is_approver
 from apps.procurement.models import ComparativeQuote
 from apps.payments.models import PaymentOrder
-from django.shortcuts import redirect
+
 
 @login_required
 def dashboard(request):
@@ -160,16 +160,13 @@ def api_live_status(request):
         json_dumps_params={"ensure_ascii": False},
     )
 
+
 @login_required
 def workbench(request):
     user = request.user
     is_rev = user.is_superuser or is_reviewer(user)
     is_app = user.is_superuser or is_approver(user)
     is_cre = is_creator(user) or user.is_superuser
-
-    # =========================
-    # Bandeja por rol
-    # =========================
 
     # Revisor: CC EN_REVISION
     pending_cc_review = ComparativeQuote.objects.none()
@@ -231,9 +228,6 @@ def workbench(request):
             creado_por=user, estado=PaymentOrder.Status.RECHAZADO
         ).order_by("-creado_en")
 
-    # =========================
-    # Resumen (tarjetas)
-    # =========================
     summary = {
         "cc_pending_review": pending_cc_review.count() if is_rev else 0,
         "cc_pending_approve": pending_cc_approve.count() if is_app else 0,
@@ -251,17 +245,14 @@ def workbench(request):
             "is_reviewer": is_rev,
             "is_approver": is_app,
             "is_creator": is_cre,
-
             "pending_cc_review": pending_cc_review,
             "pending_cc_approve": pending_cc_approve,
             "pending_op_review": pending_op_review,
             "pending_op_approve": pending_op_approve,
-
             "my_cc_drafts": my_cc_drafts,
             "my_cc_rejected": my_cc_rejected,
             "my_op_drafts": my_op_drafts,
             "my_op_rejected": my_op_rejected,
-
             "summary": summary,
         },
     )

@@ -1,25 +1,17 @@
-from django.contrib import admin
-from django.urls import path, include
-
-from . import views  # si aquí están api_pending_counts, api_live_status, etc.
-from apps.core.views import home  # home inteligente (login -> bandeja)
+from django.urls import path
+from . import views
 
 urlpatterns = [
-    # Home inteligente
-    path("", home, name="home"),
+    # ✅ Home del sistema ("/")
+    path("", views.home, name="home"),
 
-    # Admin + Auth
-    path("admin/", admin.site.urls),
-    path("accounts/", include("django.contrib.auth.urls")),
+    # ✅ Bandeja
+    path("bandeja/", views.workbench, name="workbench"),
 
-    # APIs (si realmente están en config/views.py)
+    # (Opcional) dashboard clásico
+    path("dashboard/", views.dashboard, name="dashboard"),
+
+    # APIs (si las estabas usando desde config)
     path("api/pending-counts/", views.api_pending_counts, name="api_pending_counts"),
     path("api/live-status/", views.api_live_status, name="api_live_status"),
-
-    # Apps (asegúrate de tener estos includes en tus apps)
-    path("", include("apps.core.urls")),          # aquí vive /bandeja/
-    path("", include("apps.procurement.urls")),   # /cuadros/...
-    path("", include("apps.payments.urls")),      # /ordenes/...
-    path("", include("apps.catalog.urls")),       # /proveedores/, /productos/...
 ]
-
