@@ -197,8 +197,9 @@
         <a href="{% url 'provider_list' %}" class="{% if request.resolver_match.url_name == 'provider_list' %}active{% endif %}">
           <span>🏢 Proveedores</span>
         </a>
-        <a href="{% url 'product_list' %}" class="{% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">
+        <a href="#" onclick="return false" style="opacity:.55; cursor:not-allowed;">
           <span>📦 Productos</span>
+          <span class="badge">Pronto</span>
         </a>
       </div>
 
