@@ -11,7 +11,7 @@
     .muted { color:#555; }
     .grid { width:100%; border-collapse: collapse; }
     .grid td { padding: 4px 6px; vertical-align: top; }
-    .table { width:100%; border-collapse: collapse; margin-top: 6px; }
+    .table { width:100%; border-collapse: collapse; margin-top: 6px; table-layout: fixed; }
     .table th, .table td { border-bottom:1px solid #e6e6e6; padding:6px; }
     .table th { text-align:left; }
     .right { text-align:right; }
@@ -98,9 +98,10 @@
       </tr>
 
       <tr>
-        <td style="font-weight:bold;">Total general</td>
-        <td></td>
-        <td colspan="{{ proveedores|length }}" style="font-weight:bold;">
+        <td colspan="{{ proveedores|length|add:'1' }}" class="right" style="font-weight:bold;">
+          Total general
+        </td>
+        <td class="right" style="font-weight:bold;">
           {{ total_general|floatformat:2 }}
         </td>
       </tr>

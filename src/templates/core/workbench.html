@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load dict_extras %}
 {% block title %}Bandeja - Mi trabajo{% endblock %}
 
 {% block content %}
@@ -258,7 +259,14 @@
               <div class="meta">Cuadro comparativo (BORRADOR)</div>
             </div>
             <div class="right">
-              <a class="btnx primary" href="{% url 'cc_detail' cc.pk %}">Continuar →</a>
+              {% with op_id=cc_next_op_review|default:{}|dict_get:cc.id %}
+                {% if op_id %}
+                    <a class="btnx primary" href="{% url 'op_detail' op_id %}?return_cc={{ cc.pk }}">Continuar →</a>
+                {% else %}
+                    <a class="btnx primary" href="{% url 'cc_detail' cc.pk %}">Continuar →</a>
+                {% endif %}
+             {% endwith %}
+
             </div>
           </div>
         {% empty %}

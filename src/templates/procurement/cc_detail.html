@@ -12,17 +12,30 @@
     <div>
       <h2 class="m0">Cuadro comparativo: {{ cc.number }}</h2>
 
-      <div class="muted mt-sm">
-        Estado: <b>{{ cc.get_estado_display }}</b>
-        &nbsp;|&nbsp; Fecha: {{ cc.creado_en|date:"d/m/Y H:i" }}
-
-        {% if can_edit_cc %}
-          {% if user.is_superuser or is_reviewer or cc.creado_por_id == user.id %}
-            &nbsp;|&nbsp;
-            <a class="btn btn-ghost btn-sm" href="{% url 'cc_edit_header' cc.pk %}">✏️ Editar cabecera</a>
+      <div class="detail-meta mt-sm">
+          {% if cc.estado == "BORRADOR" %}
+            <span class="pill draft">📝 Borrador</span>
+          {% elif cc.estado == "EN_REVISION" %}
+            <span class="pill pending">⏳ En revisión</span>
+          {% elif cc.estado == "REVISADO" %}
+            <span class="pill reviewed">✅ Revisado</span>
+          {% elif cc.estado == "APROBADO" %}
+            <span class="pill approved">✅ Aprobado</span>
+          {% elif cc.estado == "RECHAZADO" %}
+            <span class="pill rejected">❌ Rechazado</span>
+          {% else %}
+            <span class="pill">{{ cc.get_estado_display }}</span>
           {% endif %}
-        {% endif %}
+
+          <span>Fecha: <b>{{ cc.creado_en|date:"d/m/Y H:i" }}</b></span>
+
+          {% if can_edit_cc %}
+            {% if user.is_superuser or is_reviewer or cc.creado_por_id == user.id %}
+              <a class="btn btn-ghost btn-sm" href="{% url 'cc_edit_header' cc.pk %}">✏️ Editar cabecera</a>
+            {% endif %}
+          {% endif %}
       </div>
+
 
       {% if cc_bloqueado %}
         <div class="muted mt-sm">🔒 Edición bloqueada.</div>

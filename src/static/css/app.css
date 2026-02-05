@@ -149,7 +149,7 @@ body{
   left: 0;
   height: calc(100vh - var(--topbar-h));
   overflow-y: auto;
-  box-shadow: var(--shadow-sm);
+   box-shadow: var(--shadow-sm);
 }
 
 .nav{
@@ -846,3 +846,133 @@ body{
   color: #7a5200;
   border: 1px solid #f4d57a;
 }
+
+/* =========================================================
+   UI Polish (seguro, incremental) — Sidebar / Cards / Tables
+   Pegar al FINAL de app.css
+   ========================================================= */
+
+/* Tokens suaves (si ya existen, esto no rompe) */
+:root{
+  --topbar-h: 64px;
+  --gap: 14px;
+  --hover: rgba(2,6,23,.03);
+}
+
+/* Page: mejor padding en móvil */
+@media (max-width: 600px){
+  .page{ padding: 12px !important; }
+}
+
+/* Sidebar: activo más profesional (barra izquierda) */
+.nav a.active{
+  position: relative;
+  background: rgba(37,99,235,.10);
+  color: var(--primary);
+}
+.nav a.active::before{
+  content:"";
+  position:absolute;
+  left:6px;
+  top:10px;
+  bottom:10px;
+  width:3px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+/* Sidebar: hover más fino */
+.nav a:hover{
+  background: #f1f5f9;
+}
+
+/* Cards: consistencia visual */
+.card{
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 10px 26px rgba(2,6,23,.06);
+}
+
+/* Tipografías en encabezados dentro de cards */
+.card h2, .card h3{
+  letter-spacing: -0.2px;
+}
+
+/* Tablas: look pro (header suave + hover) */
+.table thead th{
+  background: #f8fafc;
+  border-bottom: 1px solid var(--line);
+}
+.table tbody tr:hover{
+  background: var(--hover);
+}
+.table td, .table th{
+  vertical-align: middle;
+}
+
+/* Botones: evita que se “rompan” en cabeceras */
+.btn{
+  white-space: nowrap;
+}
+
+/* Pills/Chips de estado (para CC/OP) */
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  border:1px solid var(--line);
+  background:#f8fafc;
+  color:#334155;
+  line-height: 1.2;
+}
+.pill.pending{
+  background: rgba(245,158,11,.12);
+  border-color: rgba(245,158,11,.22);
+  color:#92400e;
+}
+.pill.reviewed{
+  background: rgba(37,99,235,.10);
+  border-color: rgba(37,99,235,.20);
+  color:#1d4ed8;
+}
+.pill.approved{
+  background: rgba(34,197,94,.12);
+  border-color: rgba(34,197,94,.22);
+  color:#166534;
+}
+.pill.draft{
+  background: rgba(148,163,184,.14);
+  border-color: rgba(148,163,184,.25);
+  color:#334155;
+}
+.pill.rejected{
+  background: rgba(239,68,68,.10);
+  border-color: rgba(239,68,68,.20);
+  color:#991b1b;
+}
+
+/* Meta line compacta para cabeceras (opcional para usar luego) */
+.detail-meta{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Formularios inline en tablas (botones de borrar, etc.) */
+.inline-form{ display:inline; }
+.inline-form button{ vertical-align: middle; }
+
+/* Scroll horizontal suave para tablas grandes */
+.table-scroll{
+  width:100%;
+  overflow:auto;
+  -webkit-overflow-scrolling: touch;
+}
+

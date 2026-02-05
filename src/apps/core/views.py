@@ -228,6 +228,30 @@ def workbench(request):
             creado_por=user, estado=PaymentOrder.Status.RECHAZADO
         ).order_by("-creado_en")
 
+    # =========================
+    # ✅ “Continuar →” directo a OP (círculo)
+    # =========================
+    cc_next_op_review = {}   # {cc_id: op_id}
+    cc_next_op_approve = {}  # {cc_id: op_id}
+
+    if is_rev:
+        for cc in pending_cc_review:
+            ops = list(getattr(cc, "ordenes_pago").all())
+            # Preferir OP en EN_REVISION (lo que el revisor debe atender)
+            ops_pending = [op for op in ops if op.estado == PaymentOrder.Status.EN_REVISION]
+            target = (sorted(ops_pending, key=lambda o: o.id) or sorted(ops, key=lambda o: o.id) or [None])[0]
+            if target:
+                cc_next_op_review[cc.id] = target.id
+
+    if is_app:
+        for cc in pending_cc_approve:
+            ops = list(getattr(cc, "ordenes_pago").all())
+            # Preferir OP en REVISADO (lo que el aprobador debe “ver” antes de aprobar en grupo)
+            ops_pending = [op for op in ops if op.estado == PaymentOrder.Status.REVISADO]
+            target = (sorted(ops_pending, key=lambda o: o.id) or sorted(ops, key=lambda o: o.id) or [None])[0]
+            if target:
+                cc_next_op_approve[cc.id] = target.id
+
     summary = {
         "cc_pending_review": pending_cc_review.count() if is_rev else 0,
         "cc_pending_approve": pending_cc_approve.count() if is_app else 0,
@@ -245,17 +269,25 @@ def workbench(request):
             "is_reviewer": is_rev,
             "is_approver": is_app,
             "is_creator": is_cre,
+
             "pending_cc_review": pending_cc_review,
             "pending_cc_approve": pending_cc_approve,
             "pending_op_review": pending_op_review,
             "pending_op_approve": pending_op_approve,
+
             "my_cc_drafts": my_cc_drafts,
             "my_cc_rejected": my_cc_rejected,
             "my_op_drafts": my_op_drafts,
             "my_op_rejected": my_op_rejected,
+
+            # ✅ nuevos mapas para links “Continuar →”
+            "cc_next_op_review": cc_next_op_review,
+            "cc_next_op_approve": cc_next_op_approve,
+
             "summary": summary,
         },
     )
+
 
 
 def home(request):
