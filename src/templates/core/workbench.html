@@ -208,7 +208,15 @@
               <div class="meta">Creador: {{ op.creado_por.get_full_name|default:op.creado_por.username }}</div>
             </div>
             <div class="right">
-              <a class="btnx primary" href="{% url 'op_detail' op.pk %}">Revisar →</a>
+                {% with op_id=cc_next_op_approve|get_item:cc.id %}
+                    {% if op_id %}
+                        <a class="btnx primary" href="{% url 'op_detail' op_id %}?return_cc={{ cc.pk }}">Revisar →</a>
+                    {% else %}
+                        <a class="btnx primary" href="{% url 'cc_detail' cc.pk %}">Revisar →</a>
+                    {% endif %}
+                {% endwith %}
+
+
             </div>
           </div>
         {% empty %}
@@ -259,14 +267,13 @@
               <div class="meta">Cuadro comparativo (BORRADOR)</div>
             </div>
             <div class="right">
-              {% with op_id=cc_next_op_review|default:{}|dict_get:cc.id %}
-                {% if op_id %}
-                    <a class="btnx primary" href="{% url 'op_detail' op_id %}?return_cc={{ cc.pk }}">Continuar →</a>
-                {% else %}
-                    <a class="btnx primary" href="{% url 'cc_detail' cc.pk %}">Continuar →</a>
-                {% endif %}
-             {% endwith %}
-
+                {% with op_id=cc_next_op_review|get_item:cc.id %}
+                    {% if op_id %}
+                        <a class="btnx primary" href="{% url 'op_detail' op_id %}?return_cc={{ cc.pk }}">Continuar →</a>
+                    {% else %}
+                        <a class="btnx primary" href="{% url 'cc_detail' cc.pk %}">Continuar →</a>
+                    {% endif %}
+                {% endwith %}
             </div>
           </div>
         {% empty %}

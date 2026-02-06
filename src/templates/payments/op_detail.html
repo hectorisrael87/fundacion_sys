@@ -9,7 +9,19 @@
         <h2 class="m0">Orden de pago: {{ op.number }}</h2>
 
         <div class="muted mt-xs">
-          Estado: <b>{{ op.get_estado_display }}</b> |
+          Estado:
+          <span class="pill
+            {% if op.estado == 'BORRADOR' %}draft
+            {% elif op.estado == 'EN_REVISION' %}pending
+            {% elif op.estado == 'REVISADO' %}reviewed
+            {% elif op.estado == 'APROBADO' %}approved
+            {% elif op.estado == 'RECHAZADO' %}rejected
+            {% endif %}
+          ">
+            {{ op.get_estado_display }}
+          </span>
+          |
+
           Cuadro: <a href="{% url 'cc_detail' op.cuadro.id %}">{{ op.cuadro.number }}</a>
 
           {% if op.es_parcial %}
