@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
-
+from apps.catalog.models import Product
 from apps.catalog.models import Provider
 from .forms import ProviderForm, ProductForm
 from django.db import models
@@ -60,14 +60,16 @@ def provider_edit(request, pk: int):
 
 @login_required
 def product_create(request):
-    next_url = request.GET.get("next") or "/"
+    next_url = request.GET.get("next") or request.POST.get("next") or "/"
 
     if request.method == "POST":
         form = ProductForm(request.POST)
         if form.is_valid():
             p = form.save()
             messages.success(request, f"Producto creado: {p.nombre}")
-            return redirect(next_url)
+
+            sep = "&" if "?" in next_url else "?"
+            return redirect(f"{next_url}{sep}created_product={p.pk}")
     else:
         form = ProductForm()
 
@@ -101,4 +103,47 @@ def provider_list(request):
         request,
         "catalog/provider_list.html",
         {"proveedores": proveedores, "f": f},
+    )
+@login_required
+def product_edit(request, pk: int):
+    producto = get_object_or_404(Product, pk=pk)
+    next_url = request.GET.get("next") or request.POST.get("next") or "/"
+
+    if request.method == "POST":
+        form = ProductForm(request.POST, instance=producto)
+        if form.is_valid():
+            p = form.save()
+            messages.success(request, f"Producto actualizado: {p.nombre}")
+            return redirect(next_url)
+    else:
+        form = ProductForm(instance=producto)
+
+    return render(
+        request,
+        "catalog/product_form.html",
+        {"form": form, "next_url": next_url, "title": "Editar producto"},
+    )
+
+
+@login_required
+def product_delete(request, pk: int):
+    producto = get_object_or_404(Product, pk=pk)
+    next_url = request.GET.get("next") or request.POST.get("next") or "/"
+
+    if request.method == "POST":
+        # ✅ Recomendado: desactivar en vez de borrar
+        if hasattr(producto, "activo"):
+            producto.activo = False
+            producto.save(update_fields=["activo"])
+            messages.success(request, f"Producto desactivado: {producto.nombre}")
+        else:
+            producto.delete()
+            messages.success(request, f"Producto eliminado: {producto.nombre}")
+
+        return redirect(next_url)
+
+    return render(
+        request,
+        "catalog/product_confirm_delete.html",
+        {"producto": producto, "next_url": next_url},
     )

@@ -54,10 +54,10 @@
   <table class="table">
     <thead>
       <tr>
-        <th>Producto</th>
-        <th class="right">Cantidad</th>
+        <th style="width:55%; text-align:left;">Producto</th>
+        <th style="width:15%; text-align:right;">Cantidad</th>
         {% for ps in proveedores %}
-          <th class="right">
+          <th style="width:15%; text-align:right;">
             {{ ps.proveedor.nombre_empresa }}
             <div class="muted" style="font-size:11px; font-weight:normal;">{{ ps.detalle }}</div>
           </th>
@@ -67,11 +67,11 @@
     <tbody>
       {% for it in items %}
       <tr>
-        <td>{{ it.producto.nombre }}</td>
-        <td class="right">{{ it.cantidad|floatformat:2 }} {{ it.unidad }}</td>
+        <td style="text-align:left;">{{ it.producto.nombre }}</td>
+        <td style="text-align:right;">{{ it.cantidad|floatformat:2 }} {{ it.unidad }}</td>
 
         {% for ps in proveedores %}
-          <td class="right">
+          <td style="text-align:right;">
             {% with pu=precios|get_item:ps.proveedor.id|get_item:it.producto.id %}
               {% if pu %}
                 <div class="muted" style="font-size:11px;">PU: {{ pu|floatformat:2 }}</div>

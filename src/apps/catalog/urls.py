@@ -1,9 +1,12 @@
 from django.urls import path
-from .views import provider_create, provider_edit, product_create, provider_list
+from . import views
 
 urlpatterns = [
-    path("proveedores/nuevo/", provider_create, name="provider_create"),
-    path("proveedores/<int:pk>/editar/", provider_edit, name="provider_edit"),
-    path("productos/nuevo/", product_create, name="product_create"),
-    path("proveedores/", provider_list, name="provider_list"),
+    path("proveedores/nuevo/", views.provider_create, name="provider_create"),
+    path("proveedores/<int:pk>/editar/", views.provider_edit, name="provider_edit"),
+    path("proveedores/", views.provider_list, name="provider_list"),
+
+    path("productos/nuevo/", views.product_create, name="product_create"),
+    path("productos/<int:pk>/editar/", views.product_edit, name="product_edit"),
+    path("productos/<int:pk>/eliminar/", views.product_delete, name="product_delete"),
 ]

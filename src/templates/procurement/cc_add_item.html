@@ -15,9 +15,17 @@
         <a class="btn btn-ghost btn-sm" href="{% url 'cc_detail' cc.pk %}">✕</a>
       </div>
 
-      <div class="mt-md">
+      <div class="mt-md" style="display:flex; gap:8px; flex-wrap:wrap;">
         <a class="btn btn-ghost btn-sm" href="{% url 'product_create' %}?next={% url 'cc_add_item' cc.pk %}">
           ➕ Crear producto nuevo
+        </a>
+
+        <a class="btn btn-ghost btn-sm" href="#" onclick="return openEditProduct();">
+          ✏️ Editar seleccionado
+        </a>
+
+        <a class="btn btn-ghost btn-sm" href="#" onclick="return openDeleteProduct();">
+          🗑️ Eliminar seleccionado
         </a>
       </div>
 
@@ -29,6 +37,20 @@
         {% endif %}
 
         <div class="form-grid">
+          <div class="field" style="grid-column: 1 / -1;">
+            <div class="label">Buscar producto</div>
+            <input
+              type="text"
+              id="productSearch"
+              class="control"
+              placeholder="Escribe para buscar…"
+              autocomplete="off"
+            />
+            <div class="muted" style="margin-top:6px; font-size:12px;">
+              Tip: escribe 2–3 letras para filtrar el listado.
+            </div>
+          </div>
+
           <div class="field">
             <div class="label">Producto</div>
             {{ form.producto }}
@@ -56,4 +78,80 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  const search = document.getElementById("productSearch");
+  const select = document.getElementById("id_producto"); // Django default id
+  if (!search || !select) return;
+
+  // Guardamos las opciones originales para restaurar
+  const allOptions = Array.from(select.options).map(o => ({
+    value: o.value,
+    text: o.text,
+    disabled: o.disabled
+  }));
+
+  function rebuildOptions(filtered) {
+    const current = select.value;
+    select.innerHTML = "";
+    for (const opt of filtered) {
+      const o = document.createElement("option");
+      o.value = opt.value;
+      o.textContent = opt.text;
+      o.disabled = !!opt.disabled;
+      select.appendChild(o);
+    }
+    // Mantener selección si sigue existiendo
+    const stillExists = Array.from(select.options).some(o => o.value === current);
+    if (stillExists) select.value = current;
+  }
+
+  search.addEventListener("input", function () {
+    const q = (search.value || "").trim().toLowerCase();
+    if (!q) return rebuildOptions(allOptions);
+
+    const filtered = allOptions.filter(o => {
+      // Mantener placeholder (value vacío)
+      if (!o.value) return true;
+      return o.text.toLowerCase().includes(q);
+    });
+
+    rebuildOptions(filtered);
+  });
+
+  // ✅ Autoseleccionar producto recién creado: ?created_product=ID
+  const params = new URLSearchParams(window.location.search);
+  const created = params.get("created_product");
+  if (created) {
+    rebuildOptions(allOptions); // asegurar que el option exista
+    select.value = created;
+    search.value = "";
+
+    // Enfocar cantidad para acelerar carga
+    const qty = document.getElementById("id_cantidad");
+    if (qty) qty.focus();
+  }
+
+  // ✅ Editar seleccionado (vuelve al modal con next)
+  window.openEditProduct = function () {
+    const id = select.value;
+    if (!id) { alert("Selecciona un producto primero."); return false; }
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/productos/${id}/editar/?next=${next}`;
+    return false;
+  }
+
+  // ✅ Eliminar seleccionado (recomendado: mejor desactivar en vez de borrar)
+  window.openDeleteProduct = function () {
+    const id = select.value;
+    if (!id) { alert("Selecciona un producto primero."); return false; }
+    const ok = confirm("¿Seguro? Recomendado: en vez de eliminar, mejor desactivar (Activo = No).");
+    if (!ok) return false;
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/productos/${id}/eliminar/?next=${next}`;
+    return false;
+  }
+})();
+</script>
 {% endblock %}
