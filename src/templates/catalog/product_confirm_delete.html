@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Eliminar producto{% endblock %}
+
+{% block content %}
+{% firstof next_url request.GET.next '/' as back_url %}
+
+<div class="modal">
+  <a class="modal-backdrop" href="{{ back_url }}" aria-label="Cerrar"></a>
+
+  <div class="modal-panel">
+    <div class="card">
+      <div class="modal-header">
+        <div>
+          <h2 class="m0">Eliminar producto</h2>
+          <div class="muted mt-xs">
+            Esto desactivará el producto (recomendado) para no romper históricos.
+          </div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="{{ back_url }}">✕</a>
+      </div>
+
+      <div class="mt-md">
+        <div class="label">Producto</div>
+        <div class="control control-static">{{ producto.nombre }}</div>
+      </div>
+
+      <form method="post" class="mt-md" style="margin-top:14px;">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ back_url }}">
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit">🗑️ Confirmar</button>
+          <a class="btn btn-ghost" href="{{ back_url }}">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

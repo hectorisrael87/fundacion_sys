@@ -1,6 +1,6 @@
 from django import forms
 from .models import ComparativeQuote, ComparativeItem, ComparativeSupplier, ComparativeQuoteAttachment
-
+from apps.catalog.models import Product
 
 def _add_control(form: forms.Form):
     for field in form.fields.values():
@@ -30,6 +30,10 @@ class ComparativeItemForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _add_control(self)
+
+        # ✅ Solo productos activos (evita que aparezcan desactivados)
+        if "producto" in self.fields:
+            self.fields["producto"].queryset = Product.objects.filter(activo=True).order_by("nombre")
 
 
 class ComparativeSupplierForm(forms.ModelForm):
