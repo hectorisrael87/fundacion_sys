@@ -27,6 +27,37 @@
     color: var(--muted);
     font-size:12px;
   }
+  /* Modal: que el contenido scrollee y las acciones no se desborden */
+  .modal-panel{
+    max-height: 92vh;
+    overflow: hidden;
+  }
+
+  .modal-panel .card{
+    display: flex;
+    flex-direction: column;
+    max-height: 92vh;
+  }
+
+  /* el form/cuerpo puede scrollear */
+  .modal-panel .card form{
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding-bottom: 12px;
+  }
+
+  /* acciones siempre visibles */
+  .modal-actions{
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-top: 1px solid var(--line);
+    z-index: 5;
+  }
+
 </style>
 
 <div class="modal">
