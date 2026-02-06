@@ -21,7 +21,6 @@ class ComparativeQuoteForm(forms.ModelForm):
             "expresado_en": forms.TextInput(attrs={"class": "control"}),
         }
 
-
 class ComparativeItemForm(forms.ModelForm):
     class Meta:
         model = ComparativeItem
@@ -31,10 +30,8 @@ class ComparativeItemForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         _add_control(self)
 
-        # ✅ Solo productos activos (evita que aparezcan desactivados)
-        if "producto" in self.fields:
-            self.fields["producto"].queryset = Product.objects.filter(activo=True).order_by("nombre")
-
+        # ✅ Solo productos activos
+        self.fields["producto"].queryset = Product.objects.filter(activo=True).order_by("nombre")
 
 class ComparativeSupplierForm(forms.ModelForm):
     class Meta:

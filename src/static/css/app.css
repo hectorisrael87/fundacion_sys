@@ -1068,4 +1068,22 @@ body{
   border-radius: 999px !important;
 }
 
+/* OP detail: descripción en lectura consistente */
+.op-detail .control.control-static{
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+/* Mantener saltos de línea si la descripción viene larga */
+.op-detail .op-desc-static{
+  white-space: pre-wrap;
+}
+
+/* Si descripción es textarea, que use el mismo look */
+.op-detail textarea,
+.op-detail input[type="text"]{
+  width: 100%;
+}
 
