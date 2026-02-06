@@ -108,26 +108,28 @@ def cc_list(request):
         ops = sorted(list(cc.ordenes_pago.all()), key=lambda x: x.id)
 
         cc.ops_total = len(ops)
-        cc.ops_reviewed_count = sum(1 for op in ops if op.estado == PaymentOrder.Status.REVISADO)
-        cc.ops_pending_count = cc.ops_total - cc.ops_reviewed_count
 
-        # next_op_id:
-        # - Revisor: primera OP EN_REVISION, si no hay, primera OP
-        # - Aprobador: primera OP (entrada al círculo de lectura)
+        # ✅ Conteos reales por estado (sin suposiciones)
+        cc.ops_reviewed_count = sum(1 for op in ops if op.estado == PaymentOrder.Status.REVISADO)
+        cc.ops_pending_count = sum(1 for op in ops if op.estado == PaymentOrder.Status.EN_REVISION)
+
+        # ✅ next_op_id:
+        # - Revisor: prioriza OP EN_REVISION, si no hay, primera OP
+        # - Aprobador: prioriza OP REVISADO (lo que debe “ver”), si no hay, primera OP
         cc.next_op_id = None
         if ops:
             if is_rev and not is_app:
-                first_pending = None
-                for op in ops:
-                    if op.estado == PaymentOrder.Status.EN_REVISION:
-                        first_pending = op
-                        break
-                cc.next_op_id = (first_pending.id if first_pending else ops[0].id)
+                target = next((op for op in ops if op.estado == PaymentOrder.Status.EN_REVISION), None) or ops[0]
+                cc.next_op_id = target.id
+
             elif is_app and not is_rev:
-                cc.next_op_id = ops[0].id
+                target = next((op for op in ops if op.estado == PaymentOrder.Status.REVISADO), None) or ops[0]
+                cc.next_op_id = target.id
+
             else:
-                # fallback (si tuviera ambos roles): preferimos llevarlo a la primera
+                # fallback (si tuviera ambos roles): llévalo a la primera
                 cc.next_op_id = ops[0].id
+
 
     return render(
         request,

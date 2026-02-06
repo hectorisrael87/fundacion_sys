@@ -16,8 +16,7 @@
     <a class="tab {% if status == 'pending' %}active{% endif %}" href="{% url 'op_list' %}?status=pending">Pendiente</a>
     <a class="tab {% if status == 'approved' %}active{% endif %}" href="{% url 'op_list' %}?status=approved">Aprobado</a>
   </div>
-
-  <table class="table" data-live-kind="op" data-live-filter="{{ status|default:'all' }}">
+    <table class="table" data-live-kind="op" data-live-filter="{{ status|default:'all' }}">
     <thead>
       <tr>
         <th>Número</th>

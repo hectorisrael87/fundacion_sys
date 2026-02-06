@@ -98,55 +98,58 @@
           </td>
 
           <td style="padding:10px 8px; border-bottom:1px solid #f0f0f0; white-space:nowrap;">
-            {# Siempre: ver CC #}
-            <a class="icon-action" title="Ver Cuadro" href="{% url 'cc_detail' c.pk %}">👁️</a>
+            <div class="actions-cell">
+              {# Siempre: ver CC #}
+              <a class="icon-action" title="Ver Cuadro" href="{% url 'cc_detail' c.pk %}">👁️</a>
 
-            {# ✅ Cola de trabajo: solo en pestaña Pendiente y según rol/estado #}
-            {% if status == "pending" %}
-              {% if is_reviewer and not is_approver and c.estado == "EN_REVISION" %}
-                {% if c.next_op_id %}
-                  <a class="btn btn-sm btn-primary" style="margin-left:8px;"
-                     href="{% url 'op_detail' c.next_op_id %}?return_cc={{ c.pk }}">
-                    Continuar revisión →
-                  </a>
-                {% else %}
-                  <a class="btn btn-sm btn-primary" style="margin-left:8px;"
-                     href="{% url 'cc_detail' c.pk %}">
-                    Abrir cuadro →
-                  </a>
+              {# ✅ Cola de trabajo: solo en pestaña Pendiente y según rol/estado #}
+              {% if status == "pending" %}
+                {% if is_reviewer and not is_approver and c.estado == "EN_REVISION" %}
+                  {% if c.next_op_id %}
+                    <a class="btn btn-sm btn-primary"
+                      href="{% url 'op_detail' c.next_op_id %}?return_cc={{ c.pk }}">
+                      Continuar →
+                    </a>
+                  {% else %}
+                    <a class="btn btn-sm btn-primary"
+                      href="{% url 'cc_detail' c.pk %}">
+                      Abrir →
+                    </a>
+                  {% endif %}
+                {% endif %}
+
+                {% if is_approver and not is_reviewer and c.estado == "REVISADO" %}
+                  {% if c.next_op_id %}
+                    <a class="btn btn-sm btn-primary"
+                      href="{% url 'op_detail' c.next_op_id %}?return_cc={{ c.pk }}">
+                      Revisar →
+                    </a>
+                  {% else %}
+                    <a class="btn btn-sm btn-primary"
+                      href="{% url 'cc_detail' c.pk %}">
+                      Abrir →
+                    </a>
+                  {% endif %}
                 {% endif %}
               {% endif %}
 
-              {% if is_approver and not is_reviewer and c.estado == "REVISADO" %}
-                {% if c.next_op_id %}
-                  <a class="btn btn-sm btn-primary" style="margin-left:8px;"
-                     href="{% url 'op_detail' c.next_op_id %}?return_cc={{ c.pk }}">
-                    Revisar OPs →
-                  </a>
-                {% else %}
-                  <a class="btn btn-sm btn-primary" style="margin-left:8px;"
-                     href="{% url 'cc_detail' c.pk %}">
-                    Abrir cuadro →
-                  </a>
+              {# Eliminar solo creador en borrador #}
+              {% if user.is_superuser or c.creado_por_id == user.id %}
+                {% if c.estado == "BORRADOR" %}
+                  <form method="post" action="{% url 'cc_delete' c.pk %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button
+                      type="submit"
+                      class="icon-btn"
+                      title="Eliminar"
+                      onclick="return confirm('¿Eliminar el cuadro {{ c.number }}?');"
+                    >🗑️</button>
+                  </form>
                 {% endif %}
               {% endif %}
-            {% endif %}
-
-            {# Eliminar solo creador en borrador #}
-            {% if user.is_superuser or c.creado_por_id == user.id %}
-              {% if c.estado == "BORRADOR" %}
-                <form method="post" action="{% url 'cc_delete' c.pk %}" style="display:inline;">
-                  {% csrf_token %}
-                  <button
-                    type="submit"
-                    class="icon-btn"
-                    title="Eliminar"
-                    onclick="return confirm('¿Eliminar el cuadro {{ c.number }}?');"
-                  >🗑️</button>
-                </form>
-              {% endif %}
-            {% endif %}
+            </div>
           </td>
+
         </tr>
       {% empty %}
         <tr><td colspan="7" style="padding:10px 8px;">No hay cuadros todavía.</td></tr>
